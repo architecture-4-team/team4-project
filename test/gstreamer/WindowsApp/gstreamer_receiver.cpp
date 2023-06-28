@@ -1,9 +1,10 @@
-﻿#include <gst/gst.h>
+﻿#include "gstreamer_receiver.h"
+#include <gst/gst.h>
 
-int main(int argc, char* argv[])
+int receiver()
 {
     // Initialize GStreamer
-    gst_init(&argc, &argv);
+    gst_init(NULL, NULL);
 
     // Create GStreamer pipline for video
     GstElement* videoPipeline = gst_pipeline_new("videoReceiver_pipeline");
@@ -94,7 +95,7 @@ int main(int argc, char* argv[])
         }
         case GST_MESSAGE_ELEMENT:
         {
-            gint cnt = 0;
+            static gint cnt = 0;
             const gchar* ip;
             if (cnt < 5)
             { 

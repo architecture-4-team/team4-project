@@ -1,11 +1,12 @@
-﻿#include <gst/gst.h>
+﻿#include "gstreamer_sender.h"
+#include <gst/gst.h>
 
 #define H264 1
 
-int main(int argc, char* argv[])
+int sender()
 {
     // Initialize GStreamer
-    gst_init(&argc, &argv);
+    gst_init(NULL, NULL);
 
     // Create GStreamer pipline
     GstElement* pipeline = gst_pipeline_new("pipeline");
