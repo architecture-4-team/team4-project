@@ -2,6 +2,8 @@
 
 #define H264 1
 
+#define LOOPBACK 1
+
 int main(int argc, char* argv[])
 {
     // Initialize GStreamer
@@ -10,15 +12,22 @@ int main(int argc, char* argv[])
     // Create GStreamer pipline
     GstElement* pipeline = gst_pipeline_new("pipeline");
 
-    // Create GStreamer pipline elements for video
+    // Create GStreamer pipline elements for video stream
     GstElement* videoSrc = gst_element_factory_make("mfvideosrc", "videoSrc");
     GstElement* videoCapsfilter = gst_element_factory_make("capsfilter", "videoCapsfilter");
-
 #if H264
     GstElement* videoEnc = gst_element_factory_make("x264enc", "videoEnc");
     GstElement* videoPay = gst_element_factory_make("rtph264pay", "videoPay");
 #endif // h264
     GstElement* videoSink = gst_element_factory_make("udpsink", "videoSink");
+    
+    // Create tee element
+    GstElement* tee = gst_element_factory_make("tee", "tee");
+    GstElement* queueDisplay = gst_element_factory_make("queue", "queueDisplay");
+    GstElement* queueNetwork = gst_element_factory_make("queue", "queueNetwork");
+
+    // Create video display elements
+    GstElement* videoSinkDisplay = gst_element_factory_make("autovideosink", "videoSinkDisplay");
 
     // Create GStreamer pipline elements for audio
     GstElement* audioSrc = gst_element_factory_make("autoaudiosrc", "audioSrc");
@@ -29,25 +38,44 @@ int main(int argc, char* argv[])
     GstElement* audioSink = gst_element_factory_make("udpsink", "audioSink");
 
     // Add element to pipeline
-    gst_bin_add_many(GST_BIN(pipeline), videoSrc, videoCapsfilter, videoEnc, videoPay, videoSink, audioSrc, audioConv, audioResample, audioOpusenc, audioPay, audioSink, NULL);
+    gst_bin_add_many(GST_BIN(pipeline), videoSrc, videoCapsfilter, videoEnc, videoPay, videoSink, tee, queueDisplay, queueNetwork, videoSinkDisplay, audioSrc, audioConv, audioResample, audioOpusenc, audioPay, audioSink, NULL);
 
     // linking elements for video
-    gst_element_link_many(videoSrc, videoCapsfilter, videoEnc, videoPay, videoSink, NULL);
+    gst_element_link_many(videoSrc, videoCapsfilter, tee, NULL);
 
-    // linking elements for audio
-    gst_element_link_many(audioSrc, audioConv, audioResample, audioOpusenc, audioPay, audioSink, NULL);
+    // Link video display elements
+    GstPad* displayPad = gst_element_request_pad_simple(tee, "src_%u");
+    GstPad* displaySinkPad = gst_element_get_static_pad(queueDisplay, "sink");
+    gst_pad_link(displayPad, displaySinkPad);
+    gst_element_link(queueDisplay, videoSinkDisplay);
+
+    // Link video encoding elements
+    GstPad* encodePad = gst_element_request_pad_simple(tee, "src_%u");
+    GstPad* encodeSinkPad = gst_element_get_static_pad(queueNetwork, "sink");
+    gst_pad_link(encodePad, encodeSinkPad);
+    gst_element_link_many(queueNetwork, videoEnc, videoPay, videoSink, NULL);
 
     // Set video resolution
     GstCaps* videoCaps = gst_caps_from_string("video/x-raw, width=320, height=240");
     g_object_set(G_OBJECT(videoCapsfilter), "caps", videoCaps, NULL);
     gst_caps_unref(videoCaps);
 
+    // linking elements for audio
+    gst_element_link_many(audioSrc, audioConv, audioResample, audioOpusenc, audioPay, audioSink, NULL);
+
+#if LOOPBACK
     // Set the receiving IP and port for video
     g_object_set(videoSink, "host", "127.0.0.1", "port", 5001, NULL);
 
     // Set the receiving IP and port for audio
     g_object_set(audioSink, "host", "127.0.0.1", "port", 5002, NULL);
+#else
+    // Set the receiving IP and port for video
+    g_object_set(videoSink, "host", "192.168.2.4", "port", 5003, NULL);
 
+    // Set the receiving IP and port for audio
+    g_object_set(audioSink, "host", "192.168.2.4", "port", 5004, NULL);
+#endif
     // set up laptop camera
     g_object_set(videoSrc, "device-index", 0, NULL);  // 0은 첫 번째 카메라를 나타냅니다.
 

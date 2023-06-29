@@ -501,6 +501,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="framework.h" />
+    <ClInclude Include="global_setting.h" />
     <ClInclude Include="gstreamer_receiver.h" />
     <ClInclude Include="gstreamer_sender.h" />
     <ClInclude Include="Resource.h" />

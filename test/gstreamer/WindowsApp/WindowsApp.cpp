@@ -9,7 +9,7 @@
 #include <Windows.h>
 #include <gst/gst.h>
 #include <stdio.h>
-
+#include <gst/gst.h>
 
 #define MAX_LOADSTRING 100
 
@@ -50,6 +50,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // TODO: 여기에 코드를 입력합니다.
     SetStdOutToNewConsole();
 
+    // Initialize GStreamer
+    gst_init(NULL, NULL);
+
     // 전역 문자열을 초기화합니다.
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_WINDOWSAPP, szWindowClass, MAX_LOADSTRING);
@@ -74,14 +77,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
-
-    // Close Thread
-    WaitForSingleObject(hSenderThread, INFINITE);
-    CloseHandle(hSenderThread);
-    hSenderThread = INVALID_HANDLE_VALUE;
-    WaitForSingleObject(hReceiverThread, INFINITE);
-    CloseHandle(hReceiverThread);
-    hReceiverThread = INVALID_HANDLE_VALUE;
     return (int) msg.wParam;
 }
 
@@ -278,6 +273,9 @@ DWORD WINAPI RunSENDER(LPVOID lpParam)
     //MessageBox(NULL, (LPCWSTR)"Thread is running!", (LPCWSTR)"Thread", MB_OK);
     sender();
 
+    WaitForSingleObject(hSenderThread, INFINITE);
+    CloseHandle(hSenderThread);
+    hSenderThread = INVALID_HANDLE_VALUE;
     return 0;
 }
 
@@ -288,7 +286,11 @@ DWORD WINAPI RunRECEIVER(LPVOID lpParam)
     // 예: 버튼 클릭 이벤트에 대한 처리 등
     //MessageBox(NULL, (LPCWSTR)"Thread is running!", (LPCWSTR)"Thread", MB_OK);
     receiver();
+    // Close Thread
 
+    WaitForSingleObject(hReceiverThread, INFINITE);
+    CloseHandle(hReceiverThread);
+    hReceiverThread = INVALID_HANDLE_VALUE;
     return 0;
 }
 

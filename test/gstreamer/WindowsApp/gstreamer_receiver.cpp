@@ -1,11 +1,10 @@
 ﻿#include "gstreamer_receiver.h"
 #include <gst/gst.h>
+#include "global_setting.h"
+
 
 int receiver()
 {
-    // Initialize GStreamer
-    gst_init(NULL, NULL);
-
     // Create GStreamer pipline for video
     GstElement* videoPipeline = gst_pipeline_new("videoReceiver_pipeline");
 
@@ -36,10 +35,15 @@ int receiver()
     gst_element_link_many(videoSrc, videoCapsfilter, videoDepay, videoDec, videoSink, NULL);
     gst_element_link_many(audioSrc, audioCapsfilter, audioDepay, audioDec, audioConv, audioSink, NULL);
 
+#if LOOPBACK
     // Receive port setting
     g_object_set(videoSrc, "port", 5001, NULL);
     g_object_set(audioSrc, "port", 5002, NULL);
-
+#else
+    // Receive port setting
+    g_object_set(videoSrc, "port", 5001, NULL);
+    g_object_set(audioSrc, "port", 5002, NULL);
+#endif
     // RTP video format (caps) settings
     GstCaps* videoCaps = gst_caps_from_string("application/x-rtp, media=(string)video, payload=(int)96");
     g_object_set(G_OBJECT(videoCapsfilter), "caps", videoCaps, NULL);
@@ -63,7 +67,8 @@ int receiver()
     // Run main loop
     GstBus* bus = gst_element_get_bus(videoPipeline);
     GstMessage* msg;
-    while ((msg = gst_bus_poll(bus, GST_MESSAGE_ANY, GST_CLOCK_TIME_NONE)))
+    gboolean shouldExitLoop = FALSE;
+    while (!shouldExitLoop && (msg = gst_bus_poll(bus, GST_MESSAGE_ANY, GST_CLOCK_TIME_NONE)))
     {
         GError* err;
         gchar* debug_info;
@@ -77,6 +82,7 @@ int receiver()
             g_free(debug_info);
             break;
         case GST_MESSAGE_EOS:
+            shouldExitLoop = TRUE;
             g_print("End-Of-Stream reached.\n");
             break;
         case GST_MESSAGE_STATE_CHANGED:
@@ -114,6 +120,25 @@ int receiver()
     // Release the pipeline
     gst_element_set_state(videoPipeline, GST_STATE_NULL);
     gst_element_set_state(audioPipeline, GST_STATE_NULL);
+
+    // Remove the elements from the pipeline
+    gst_bin_remove_many(GST_BIN(videoPipeline), videoSrc, videoCapsfilter, videoDepay, videoDec, videoSink, NULL);
+    gst_bin_remove_many(GST_BIN(audioPipeline), audioSrc, audioCapsfilter, audioDec, audioDepay, audioConv, audioSink, NULL);
+
+    // Unref the elements
+    gst_object_unref(videoSrc);
+    gst_object_unref(videoCapsfilter);
+    gst_object_unref(videoDepay);
+    gst_object_unref(videoDec);
+    gst_object_unref(videoSink);
+
+    gst_object_unref(audioSrc);
+    gst_object_unref(audioCapsfilter);
+    gst_object_unref(audioDec);
+    gst_object_unref(audioDepay);
+    gst_object_unref(audioConv);
+    gst_object_unref(audioSink);
+
     gst_object_unref(videoPipeline);
     gst_object_unref(audioPipeline);
     return 0;
