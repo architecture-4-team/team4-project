@@ -2,16 +2,20 @@
 #include <gst/gst.h>
 #include "global_setting.h"
 
+static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, gpointer data);
+static GstPadProbeReturn probe_callback(GstPad* pad, GstPadProbeInfo* info, gpointer user_data);
+
+GMainLoop* receiverLoop;
+GstElement* videoPipeline;
 
 int receiver()
 {
     // Create GStreamer pipline for video
-    GstElement* videoPipeline = gst_pipeline_new("videoReceiver_pipeline");
+    videoPipeline = gst_pipeline_new("videoReceiver_pipeline");
 
     // Create GStreamer pipline elements for video
     GstElement* videoSrc = gst_element_factory_make("udpsrc", "videoSrc");
     GstElement* videoCapsfilter = gst_element_factory_make("capsfilter", "videoCapsfilter");
-    //x.264
     GstElement* videoDepay = gst_element_factory_make("rtph264depay", "videoDepay");
     GstElement* videoDec = gst_element_factory_make("avdec_h264", "videoDec");
     GstElement* videoSink = gst_element_factory_make("autovideosink", "videoSink");
@@ -30,10 +34,16 @@ int receiver()
     // Add element to pipeline
     gst_bin_add_many(GST_BIN(videoPipeline), videoSrc, videoCapsfilter, videoDepay, videoDec, videoSink, NULL);
     gst_bin_add_many(GST_BIN(audioPipeline), audioSrc, audioCapsfilter, audioDec, audioDepay, audioConv, audioSink, NULL);
-
+    
     // linking elements
     gst_element_link_many(videoSrc, videoCapsfilter, videoDepay, videoDec, videoSink, NULL);
     gst_element_link_many(audioSrc, audioCapsfilter, audioDepay, audioDec, audioConv, audioSink, NULL);
+
+    // Get the sink pad of the sink element
+    GstPad* pad = gst_element_get_static_pad(videoSink, "sink");
+
+    gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, probe_callback, NULL, NULL);
+
 
 #if LOOPBACK
     // Receive port setting
@@ -61,61 +71,22 @@ int receiver()
     {
         g_printerr("Unable to start the pipeline.\n");
         gst_object_unref(videoPipeline);
+        gst_object_unref(audioPipeline);
         return -1;
     }
 
-    // Run main loop
+    // Get the bus for the pipeline
     GstBus* bus = gst_element_get_bus(videoPipeline);
-    GstMessage* msg;
-    gboolean shouldExitLoop = FALSE;
-    while (!shouldExitLoop && (msg = gst_bus_poll(bus, GST_MESSAGE_ANY, GST_CLOCK_TIME_NONE)))
-    {
-        GError* err;
-        gchar* debug_info;
-        switch (GST_MESSAGE_TYPE(msg))
-        {
-        case GST_MESSAGE_ERROR:
-            gst_message_parse_error(msg, &err, &debug_info);
-            g_printerr("Error received from element %s: %s\n", GST_OBJECT_NAME(msg->src), err->message);
-            g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
-            g_error_free(err);
-            g_free(debug_info);
-            break;
-        case GST_MESSAGE_EOS:
-            shouldExitLoop = TRUE;
-            g_print("End-Of-Stream reached.\n");
-            break;
-        case GST_MESSAGE_STATE_CHANGED:
-        {
-            GstState old_state, new_state, pending_state;
-            gst_message_parse_state_changed(msg, &old_state, &new_state, &pending_state);
-            g_print("State changed from %s to %s\n", gst_element_state_get_name(old_state), gst_element_state_get_name(new_state));
-            break;
-        }
-        case GST_MESSAGE_BUFFERING:
-        {
-            gint percent = 0;
-            gst_message_parse_buffering(msg, &percent);
-            g_print("Buffering %d%%\n", percent);
-            break;
-        }
-        case GST_MESSAGE_ELEMENT:
-        {
-            static gint cnt = 0;
-            const gchar* ip;
-            if (cnt < 5)
-            { 
-                cnt++;
-                g_object_get(G_OBJECT(videoSrc), "address", &ip, NULL);
-                g_print("from : %s\n", ip);
-            }
-            break;
-        }
-        default:
-            break;
-        }
-        gst_message_unref(msg);
-    }
+
+    // Add a watch to the bus to receive messages
+    gst_bus_add_watch(bus, (GstBusFunc)handle_receiver_video_bus_message, NULL);
+    gst_object_unref(bus);
+
+    // Create a GMainLoop to handle events
+    receiverLoop = g_main_loop_new(NULL, FALSE);
+
+    // Run the main loop
+    g_main_loop_run(receiverLoop);
 
     // Release the pipeline
     gst_element_set_state(videoPipeline, GST_STATE_NULL);
@@ -142,4 +113,69 @@ int receiver()
     gst_object_unref(videoPipeline);
     gst_object_unref(audioPipeline);
     return 0;
+}
+
+// Function to handle bus messages
+static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, gpointer data)
+{
+    switch (GST_MESSAGE_TYPE(msg))
+    {
+    case GST_MESSAGE_ERROR:
+        GError* err;
+        gchar* debug_info;
+        gst_message_parse_error(msg, &err, &debug_info);
+        g_printerr("Error received from element %s: %s\n", GST_OBJECT_NAME(msg->src), err->message);
+        g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
+        g_error_free(err);
+        g_free(debug_info);
+        g_main_loop_quit(receiverLoop); // Quit the main loop in case of an error
+        break;
+    case GST_MESSAGE_EOS:
+        g_print("End-Of-Stream reached.\n");
+        g_main_loop_quit(receiverLoop); // Quit the main loop when the end of the stream is reached
+        break;
+    case GST_MESSAGE_STATE_CHANGED:
+    {
+        GstState old_state, new_state, pending_state;
+        gst_message_parse_state_changed(msg, &old_state, &new_state, &pending_state);
+        g_print("State changed from %s to %s\n", gst_element_state_get_name(old_state), gst_element_state_get_name(new_state));
+        break;
+    }
+    case GST_MESSAGE_BUFFERING:
+    {
+        gint percent = 0;
+        gst_message_parse_buffering(msg, &percent);
+        g_print("Buffering %d%%\n", percent);
+        break;
+    }
+    default:
+        break;
+    }
+    gst_message_unref(msg);
+
+    return TRUE;
+}
+
+void stopReceiverGstreamer(void) {
+    g_main_loop_quit(receiverLoop);
+}
+
+static GstPadProbeReturn probe_callback(GstPad* pad, GstPadProbeInfo* info, gpointer user_data) {
+    GstBuffer* buffer = GST_PAD_PROBE_INFO_BUFFER(info);
+    guint64 bufferSize = gst_buffer_get_size(buffer);
+    guint64 timestamp = GST_BUFFER_TIMESTAMP(buffer);
+    static guint64 prevTimestamp = 0;
+
+    // Calculate data rate in bits per second
+    guint64 durationNs = timestamp - prevTimestamp;
+    if (durationNs > GST_SECOND)
+    {
+        guint64 dataRate = (bufferSize * 8 * GST_SECOND) / durationNs;
+
+        g_print("Receive Data Rate: %lu bps\n", dataRate);
+
+        prevTimestamp = timestamp;
+    }
+
+    return GST_PAD_PROBE_OK;
 }
