@@ -3,13 +3,15 @@
 
 #include "framework.h"
 #include "WindowsApp.h"
-#include "gstreamer_sender.h"
-#include "gstreamer_receiver.h"
 #include <Commctrl.h>
 #include <Windows.h>
 #include <gst/gst.h>
 #include <stdio.h>
 #include <gst/gst.h>
+
+#include "MultimediaSender.h"
+#include "MultimediaReceiver.h"
+#include "global_setting.h"
 
 #define MAX_LOADSTRING 100
 
@@ -19,6 +21,9 @@ static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI RunSENDER(LPVOID lpParam);
 DWORD WINAPI RunRECEIVER(LPVOID lpParam);
 static void SetStdOutToNewConsole(void);
+
+static void stopSENDER();
+static void stopRECEIVER();
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
@@ -31,6 +36,9 @@ HWND hWndMain;
 
 HANDLE hSenderThread;
 HANDLE hReceiverThread;
+
+MultimediaSender mSender;
+MultimediaReceiver mReceiver;
 
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
@@ -130,7 +138,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
-   ShowWindow(hWnd, nCmdShow);
+   ShowWindow(hWnd, nCmdShow); 
    UpdateWindow(hWnd);
 
    return TRUE;
@@ -170,6 +178,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     CloseHandle(hSenderThread);  // 쓰레드 핸들 닫기
                 }
                 break;
+            case IDC_STOP_SENDER:
+                // Sender 종료
+                stopSENDER();
+                break;
             case IDC_START_RECEIVER:
                 // 쓰레드 생성
                 hReceiverThread = CreateThread(NULL, 0, RunRECEIVER, NULL, 0, NULL);
@@ -177,6 +189,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 {
                     CloseHandle(hReceiverThread);  // 쓰레드 핸들 닫기
                 }
+                break;
+            case IDC_STOP_RECEIVER:
+                // 쓰레드 생성
+                stopRECEIVER();
                 break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
@@ -200,6 +216,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
+        FreeConsole();
+        fclose(pCout);
+        pCout = NULL;
+
+        // MultimediaSender 객체 삭제
+        mSender.stopSender();
+        mSender.cleanup();
+
+        // MultimediaReceiver 객체 삭제
+        mReceiver.stopReceiver();
+        mReceiver.cleanup();
+
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -234,9 +262,21 @@ static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         _T("button"),
         _T("Start Sender"),
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        50, 50, 100, 30,
+        50, 50, 150, 30,
         hWnd,
         (HMENU)IDC_START_SENDER,
+        ((LPCREATESTRUCT)lParam)->hInstance,
+        NULL
+    );
+
+    // 버튼 생성
+    CreateWindow(
+        _T("button"),
+        _T("Stop Sender"),
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        350, 50, 150, 30,
+        hWnd,
+        (HMENU)IDC_STOP_SENDER,
         ((LPCREATESTRUCT)lParam)->hInstance,
         NULL
     );
@@ -245,12 +285,24 @@ static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         _T("button"),
         _T("Start Receiver"),
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        50, 250, 100, 30,
+        50, 250, 150, 30,
         hWnd,
         (HMENU)IDC_START_RECEIVER,
         ((LPCREATESTRUCT)lParam)->hInstance,
         NULL
     );
+
+    CreateWindow(
+        _T("button"),
+        _T("Stop Receiver"),
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        350, 250, 150, 30,
+        hWnd,
+        (HMENU)IDC_STOP_RECEIVER,
+        ((LPCREATESTRUCT)lParam)->hInstance,
+        NULL
+    );
+
 
     return 1;
 }
@@ -271,7 +323,43 @@ DWORD WINAPI RunSENDER(LPVOID lpParam)
     // 쓰레드에서 실행할 로직을 작성합니다.
     // 예: 버튼 클릭 이벤트에 대한 처리 등
     //MessageBox(NULL, (LPCWSTR)"Thread is running!", (LPCWSTR)"Thread", MB_OK);
-    sender();
+    //sender();
+
+
+    // Initialize sender pipelines
+    if (!mSender.initialize())
+    {
+        std::cerr << "Failed to initialize sender pipelines." << std::endl;
+        return 1;
+    }
+
+    // Set video resolution
+    mSender.setVideoResolution(640, 480);
+
+#if LOOPBACK
+    // Set receiver IP and port
+    mSender.setReceiverIP("127.0.0.1");
+    mSender.setPort(5001,5002);
+#else
+    // Set receiver IP and port
+    sender.setReceiverIP("192.168.1.128");
+    sender.setPort(5001, 5002);
+#endif
+    // Set camera index (if necessary)
+    mSender.setCameraIndex(0);
+
+    // Set video flip method (if necessary)
+    mSender.setVideoFlipMethod(4); // Horizontal flip
+
+    // Set video encoding tune (if necessary)
+    mSender.setVideoEncTune(0x00000004); // Zero latency
+
+    // Set audio encoding type (if necessary)
+    mSender.setAudioOpusencAudioType(2051); // Restricted low delay
+
+    // Start sender pipelines
+    mSender.startSender();
+
 
     WaitForSingleObject(hSenderThread, INFINITE);
     CloseHandle(hSenderThread);
@@ -285,8 +373,21 @@ DWORD WINAPI RunRECEIVER(LPVOID lpParam)
     // 쓰레드에서 실행할 로직을 작성합니다.
     // 예: 버튼 클릭 이벤트에 대한 처리 등
     //MessageBox(NULL, (LPCWSTR)"Thread is running!", (LPCWSTR)"Thread", MB_OK);
-    receiver();
+    //receiver();
     // Close Thread
+
+    if (!mReceiver.initialize())
+    {
+        std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
+        return -1;
+    }
+    mReceiver.setPort(5001, 5002);
+
+    mReceiver.setJitterBuffer(200);
+
+    mReceiver.setRTP();
+
+    mReceiver.startReceiver();
 
     WaitForSingleObject(hReceiverThread, INFINITE);
     CloseHandle(hReceiverThread);
@@ -300,4 +401,14 @@ static void SetStdOutToNewConsole(void)
     AllocConsole();
     //AttachConsole(ATTACH_PARENT_PROCESS);
     freopen_s(&pCout, "CONOUT$", "w", stdout);
+}
+
+static void stopSENDER() {
+    // Stop sender pipelines
+    mSender.stopSender();
+}
+
+static void stopRECEIVER() {
+    // Stop sender pipelines
+    mReceiver.stopReceiver();
 }

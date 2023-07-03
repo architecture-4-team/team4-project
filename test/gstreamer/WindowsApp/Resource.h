@@ -14,6 +14,8 @@
 #define IDC_WINDOWSAPP			109
 #define IDC_START_SENDER		130
 #define IDC_START_RECEIVER		131
+#define IDC_STOP_SENDER		    132
+#define IDC_STOP_RECEIVER	    133
 #ifndef IDC_STATIC
 #define IDC_STATIC				-1
 #endif

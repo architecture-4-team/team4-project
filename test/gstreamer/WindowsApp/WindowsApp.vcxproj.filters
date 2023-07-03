@@ -27,13 +27,16 @@
     <ClInclude Include="WindowsApp.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="gstreamer_sender.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="gstreamer_receiver.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="global_setting.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Multimedia_Manager.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="MultiMediaSender.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="MultiMediaReceiver.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -41,10 +44,13 @@
     <ClCompile Include="WindowsApp.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="gstreamer_sender.cpp">
+    <ClCompile Include="Multimedia_Manager.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="gstreamer_receiver.cpp">
+    <ClCompile Include="MultiMediaSender.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="MutiMediaReceiver.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

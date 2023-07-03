@@ -502,15 +502,17 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="global_setting.h" />
-    <ClInclude Include="gstreamer_receiver.h" />
-    <ClInclude Include="gstreamer_sender.h" />
+    <ClInclude Include="MultiMediaSender.h" />
+    <ClInclude Include="Multimedia_Manager.h" />
+    <ClInclude Include="MultiMediaReceiver.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="WindowsApp.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="gstreamer_receiver.cpp" />
-    <ClCompile Include="gstreamer_sender.cpp" />
+    <ClCompile Include="MultiMediaSender.cpp" />
+    <ClCompile Include="Multimedia_Manager.cpp" />
+    <ClCompile Include="MutiMediaReceiver.cpp" />
     <ClCompile Include="WindowsApp.cpp" />
   </ItemGroup>
   <ItemGroup>
