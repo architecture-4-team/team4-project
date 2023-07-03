@@ -7,6 +7,7 @@ static GstPadProbeReturn probe_callback(GstPad* pad, GstPadProbeInfo* info, gpoi
 
 GMainLoop* receiverLoop;
 GstElement* videoPipeline;
+GstElement* audioPipeline;
 
 int receiver()
 {
@@ -16,34 +17,34 @@ int receiver()
     // Create GStreamer pipline elements for video
     GstElement* videoSrc = gst_element_factory_make("udpsrc", "videoSrc");
     GstElement* videoCapsfilter = gst_element_factory_make("capsfilter", "videoCapsfilter");
+    GstElement* jitterbufferVideo = gst_element_factory_make("rtpjitterbuffer", "jitterbufferVideo");
     GstElement* videoDepay = gst_element_factory_make("rtph264depay", "videoDepay");
     GstElement* videoDec = gst_element_factory_make("avdec_h264", "videoDec");
     GstElement* videoSink = gst_element_factory_make("autovideosink", "videoSink");
 
     // Create GStreamer pipline for audio
-    GstElement* audioPipeline = gst_pipeline_new("audioReceiver_pipeline");
+    audioPipeline = gst_pipeline_new("audioReceiver_pipeline");
 
     // Create GStreamer pipline elements for audio
     GstElement* audioSrc = gst_element_factory_make("udpsrc", "audioSrc");
     GstElement* audioCapsfilter = gst_element_factory_make("capsfilter", "audioCapsfilter");
+    GstElement* jitterbufferAudio = gst_element_factory_make("rtpjitterbuffer", "jitterbufferAudio");
     GstElement* audioDec = gst_element_factory_make("opusdec", "audioDec");
     GstElement* audioDepay = gst_element_factory_make("rtpopusdepay", "audioDepay");
     GstElement* audioConv = gst_element_factory_make("audioconvert", "audioConv");
     GstElement* audioSink = gst_element_factory_make("autoaudiosink", "audioSink");
 
     // Add element to pipeline
-    gst_bin_add_many(GST_BIN(videoPipeline), videoSrc, videoCapsfilter, videoDepay, videoDec, videoSink, NULL);
-    gst_bin_add_many(GST_BIN(audioPipeline), audioSrc, audioCapsfilter, audioDec, audioDepay, audioConv, audioSink, NULL);
+    gst_bin_add_many(GST_BIN(videoPipeline), videoSrc, videoCapsfilter, jitterbufferVideo, videoDepay, videoDec, videoSink, NULL);
+    gst_bin_add_many(GST_BIN(audioPipeline), audioSrc, audioCapsfilter, jitterbufferAudio, audioDec, audioDepay, audioConv, audioSink, NULL);
     
     // linking elements
-    gst_element_link_many(videoSrc, videoCapsfilter, videoDepay, videoDec, videoSink, NULL);
-    gst_element_link_many(audioSrc, audioCapsfilter, audioDepay, audioDec, audioConv, audioSink, NULL);
+    gst_element_link_many(videoSrc, videoCapsfilter, jitterbufferVideo, videoDepay, videoDec, videoSink, NULL);
+    gst_element_link_many(audioSrc, audioCapsfilter, jitterbufferAudio, audioDepay, audioDec, audioConv, audioSink, NULL);
 
     // Get the sink pad of the sink element
-    GstPad* pad = gst_element_get_static_pad(videoSink, "sink");
-
+    GstPad* pad = gst_element_get_static_pad(videoCapsfilter, "sink");
     gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, probe_callback, NULL, NULL);
-
 
 #if LOOPBACK
     // Receive port setting
@@ -51,9 +52,15 @@ int receiver()
     g_object_set(audioSrc, "port", 5002, NULL);
 #else
     // Receive port setting
-    g_object_set(videoSrc, "port", 5001, NULL);
-    g_object_set(audioSrc, "port", 5002, NULL);
+    g_object_set(videoSrc, "port", 5003, NULL);
+    g_object_set(audioSrc, "port", 5004, NULL);
 #endif
+
+    // latency: 지터 버퍼의 대기 시간(밀리초)을 설정합니다. 이 값은 네트워크 지연을 허용하는 최대 시간을 나타냅니다. 기본값은 200ms입니다.
+    // drop - on - latency: 이 속성이 true로 설정되면, 지터 버퍼는 대기 시간 초과 패킷을 버립니다.기본값은 false입니다.
+    g_object_set(G_OBJECT(jitterbufferVideo), "latency", 200, "do-lost", TRUE, NULL);
+    g_object_set(G_OBJECT(jitterbufferAudio), "latency", 200, "do-lost", TRUE, NULL);
+
     // RTP video format (caps) settings
     GstCaps* videoCaps = gst_caps_from_string("application/x-rtp, media=(string)video, payload=(int)96");
     g_object_set(G_OBJECT(videoCapsfilter), "caps", videoCaps, NULL);
@@ -138,7 +145,7 @@ static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, 
     {
         GstState old_state, new_state, pending_state;
         gst_message_parse_state_changed(msg, &old_state, &new_state, &pending_state);
-        g_print("State changed from %s to %s\n", gst_element_state_get_name(old_state), gst_element_state_get_name(new_state));
+        g_print("Receiver state changed from %s to %s\n", gst_element_state_get_name(old_state), gst_element_state_get_name(new_state));
         break;
     }
     case GST_MESSAGE_BUFFERING:
@@ -165,15 +172,20 @@ static GstPadProbeReturn probe_callback(GstPad* pad, GstPadProbeInfo* info, gpoi
     guint64 bufferSize = gst_buffer_get_size(buffer);
     guint64 timestamp = GST_BUFFER_TIMESTAMP(buffer);
     static guint64 prevTimestamp = 0;
+    static guint64 totalBuffer = 0;
 
     // Calculate data rate in bits per second
     guint64 durationNs = timestamp - prevTimestamp;
+
+    totalBuffer += bufferSize;
+
     if (durationNs > GST_SECOND)
     {
-        guint64 dataRate = (bufferSize * 8 * GST_SECOND) / durationNs;
+        guint64 dataRate = (totalBuffer * 8 * GST_SECOND) / durationNs;
 
         g_print("Receive Data Rate: %lu bps\n", dataRate);
 
+        totalBuffer = 0;
         prevTimestamp = timestamp;
     }
 
