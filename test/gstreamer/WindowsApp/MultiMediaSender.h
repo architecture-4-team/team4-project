@@ -5,8 +5,9 @@
 #include <gst/gst.h>
 #include <iostream>
 #include <string>
+#include "MultimediaInterface.h"
 
-class MultimediaSender
+class MultimediaSender : public MultimediaInterface
 {
 public:
     MultimediaSender();
@@ -14,8 +15,8 @@ public:
 
     bool initialize();
     void cleanup();
-    void startSender();
-    void stopSender();
+    void start();
+    void stop();
 
     void setVideoResolution(int width, int height);
     void setReceiverIP(const std::string& ip);

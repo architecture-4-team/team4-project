@@ -4,15 +4,16 @@
 
 #include <gst/gst.h>
 #include <iostream>
+#include "MultimediaInterface.h"
 
-class MultimediaReceiver {
+class MultimediaReceiver : public MultimediaInterface {
 public:
     MultimediaReceiver();
     ~MultimediaReceiver();
     bool initialize();
     void cleanup();
-    void startReceiver();
-    void stopReceiver();
+    void start();
+    void stop();
     void setPort(int videoPort, int audioPort);
     void setJitterBuffer(int latency);
     void setRTP();

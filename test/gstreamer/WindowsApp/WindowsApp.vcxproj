@@ -502,6 +502,7 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="global_setting.h" />
+    <ClInclude Include="MultimediaInterface.h" />
     <ClInclude Include="MultiMediaSender.h" />
     <ClInclude Include="Multimedia_Manager.h" />
     <ClInclude Include="MultiMediaReceiver.h" />

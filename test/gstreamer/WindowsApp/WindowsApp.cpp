@@ -11,6 +11,7 @@
 
 #include "MultimediaSender.h"
 #include "MultimediaReceiver.h"
+#include "MultimediaInterface.h"
 #include "global_setting.h"
 
 #define MAX_LOADSTRING 100
@@ -37,8 +38,8 @@ HWND hWndMain;
 HANDLE hSenderThread;
 HANDLE hReceiverThread;
 
-MultimediaSender mSender;
-MultimediaReceiver mReceiver;
+MultimediaInterface* mSender = new MultimediaSender();
+MultimediaInterface* mReceiver = new MultimediaReceiver();
 
 HWND videoWindow0; // Video 출력용 윈도우 핸들
 HWND videoWindow1; // Video 출력용 윈도우 핸들
@@ -223,12 +224,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         pCout = NULL;
 
         // MultimediaSender 객체 삭제
-        mSender.stopSender();
-        mSender.cleanup();
+        mSender->stop();
+        mSender->cleanup();
+        delete mSender;
 
         // MultimediaReceiver 객체 삭제
-        mReceiver.stopReceiver();
-        mReceiver.cleanup();
+        mReceiver->stop();
+        mReceiver->cleanup();
+        delete mReceiver;
 
         break;
     default:
@@ -352,40 +355,40 @@ DWORD WINAPI RunSENDER(LPVOID lpParam)
     HWND hWnd = reinterpret_cast<HWND>(lpParam);
 
     // Initialize sender pipelines
-    if (!mSender.initialize())
+    if (!mSender->initialize())
     {
         std::cerr << "Failed to initialize sender pipelines." << std::endl;
         return 1;
     }
 
     // Set video resolution
-    mSender.setVideoResolution(320, 240);
+    dynamic_cast<MultimediaSender*>(mSender)->setVideoResolution(320, 240);
 
 #if LOOPBACK
     // Set receiver IP and port
-    mSender.setReceiverIP("127.0.0.1");
-    mSender.setPort(5001,5002);
+    dynamic_cast<MultimediaSender*>(mSender)->setReceiverIP("127.0.0.1");
+    dynamic_cast<MultimediaSender*>(mSender)->setPort(5001,5002);
 #else
     // Set receiver IP and port
-    sender.setReceiverIP("192.168.1.128");
-    sender.setPort(5001, 5002);
+    dynamic_cast<MultimediaSender*>(mSender)->setReceiverIP("192.168.1.128");
+    sdynamic_cast<MultimediaSender*>(mSender)->setPort(5001, 5002);
 #endif
     // Set camera index (if necessary)
-    mSender.setCameraIndex(0);
+    dynamic_cast<MultimediaSender*>(mSender)->setCameraIndex(0);
 
     // Set video flip method (if necessary)
-    mSender.setVideoFlipMethod(4); // Horizontal flip
+    dynamic_cast<MultimediaSender*>(mSender)->setVideoFlipMethod(4); // Horizontal flip
 
     // Set video encoding tune (if necessary)
-    mSender.setVideoEncTune(0x00000004); // Zero latency
+    dynamic_cast<MultimediaSender*>(mSender)->setVideoEncTune(0x00000004); // Zero latency
 
     // Set audio encoding type (if necessary)
-    mSender.setAudioOpusencAudioType(2051); // Restricted low delay
+    dynamic_cast<MultimediaSender*>(mSender)->setAudioOpusencAudioType(2051); // Restricted low delay
 
-    mSender.setWindow(videoWindow0);
+    mSender->setWindow(videoWindow0);
 
     // Start sender pipelines
-    mSender.startSender();
+    mSender->start();
 
     WaitForSingleObject(hSenderThread, INFINITE);
     CloseHandle(hSenderThread);
@@ -402,20 +405,20 @@ DWORD WINAPI RunRECEIVER(LPVOID lpParam)
     //receiver();
     // Close Thread
 
-    if (!mReceiver.initialize())
+    if (!mReceiver->initialize())
     {
         std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
         return -1;
     }
-    mReceiver.setPort(5001, 5002);
+    mReceiver->setPort(5001, 5002);
 
-    mReceiver.setJitterBuffer(200);
+    dynamic_cast<MultimediaReceiver*>(mReceiver)->setJitterBuffer(200);
 
-    mReceiver.setRTP();
+    dynamic_cast<MultimediaReceiver*>(mReceiver)->setRTP();
 
-    mReceiver.setWindow(videoWindow1);
+    mReceiver->setWindow(videoWindow1);
 
-    mReceiver.startReceiver();
+    mReceiver->start();
 
     WaitForSingleObject(hReceiverThread, INFINITE);
     CloseHandle(hReceiverThread);
@@ -433,10 +436,10 @@ static void SetStdOutToNewConsole(void)
 
 static void stopSENDER() {
     // Stop sender pipelines
-    mSender.stopSender();
+    mSender->stop();
 }
 
 static void stopRECEIVER() {
     // Stop sender pipelines
-    mReceiver.stopReceiver();
+    mReceiver->stop();
 }
