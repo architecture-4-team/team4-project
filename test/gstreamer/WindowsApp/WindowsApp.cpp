@@ -40,6 +40,8 @@ HANDLE hReceiverThread;
 MultimediaSender mSender;
 MultimediaReceiver mReceiver;
 
+HWND videoWindow0; // Video 출력용 윈도우 핸들
+HWND videoWindow1; // Video 출력용 윈도우 핸들
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -172,7 +174,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             case IDC_START_SENDER:
                 // 쓰레드 생성
-                hSenderThread = CreateThread(NULL, 0, RunSENDER, NULL, 0, NULL);
+                hSenderThread = CreateThread(NULL, 0, RunSENDER, hWnd, 0, NULL);
                 if (hSenderThread)
                 {
                     CloseHandle(hSenderThread);  // 쓰레드 핸들 닫기
@@ -303,6 +305,29 @@ static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         NULL
     );
 
+    // 비디오 윈도우 생성
+    videoWindow0 = CreateWindowW(
+        L"STATIC",
+        L"Video Window",
+        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        600, 0, 320, 240,
+        hWnd, nullptr, hInst, nullptr
+    );
+    // 비디오 출력을 위해 윈도우 스타일을 설정합니다.
+    SetWindowLongPtr(videoWindow0, GWL_STYLE, GetWindowLongPtr(videoWindow0, GWL_STYLE) | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
+    SetWindowPos(videoWindow0, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
+
+    // 비디오 윈도우 생성
+    videoWindow1 = CreateWindowW(
+        L"STATIC",
+        L"Video Window",
+        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        600, 300, 320, 240,
+        hWnd, nullptr, hInst, nullptr
+    );
+    // 비디오 출력을 위해 윈도우 스타일을 설정합니다.
+    SetWindowLongPtr(videoWindow1, GWL_STYLE, GetWindowLongPtr(videoWindow1, GWL_STYLE) | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
+    SetWindowPos(videoWindow1, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
 
     return 1;
 }
@@ -324,7 +349,7 @@ DWORD WINAPI RunSENDER(LPVOID lpParam)
     // 예: 버튼 클릭 이벤트에 대한 처리 등
     //MessageBox(NULL, (LPCWSTR)"Thread is running!", (LPCWSTR)"Thread", MB_OK);
     //sender();
-
+    HWND hWnd = reinterpret_cast<HWND>(lpParam);
 
     // Initialize sender pipelines
     if (!mSender.initialize())
@@ -334,7 +359,7 @@ DWORD WINAPI RunSENDER(LPVOID lpParam)
     }
 
     // Set video resolution
-    mSender.setVideoResolution(640, 480);
+    mSender.setVideoResolution(320, 240);
 
 #if LOOPBACK
     // Set receiver IP and port
@@ -357,9 +382,10 @@ DWORD WINAPI RunSENDER(LPVOID lpParam)
     // Set audio encoding type (if necessary)
     mSender.setAudioOpusencAudioType(2051); // Restricted low delay
 
+    mSender.setWindow(videoWindow0);
+
     // Start sender pipelines
     mSender.startSender();
-
 
     WaitForSingleObject(hSenderThread, INFINITE);
     CloseHandle(hSenderThread);
@@ -386,6 +412,8 @@ DWORD WINAPI RunRECEIVER(LPVOID lpParam)
     mReceiver.setJitterBuffer(200);
 
     mReceiver.setRTP();
+
+    mReceiver.setWindow(videoWindow1);
 
     mReceiver.startReceiver();
 

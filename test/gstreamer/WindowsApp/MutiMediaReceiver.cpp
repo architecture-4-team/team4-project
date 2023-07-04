@@ -1,7 +1,6 @@
 #include "MultiMediaReceiver.h"
-
-static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, gpointer data);
-static GstPadProbeReturn probe_callback(GstPad* pad, GstPadProbeInfo* info, gpointer user_data);
+#include <gst/gst.h>
+#include <gst/video/videooverlay.h>
 
 MultimediaReceiver::MultimediaReceiver()
     : receiverVideoPipeline(nullptr), receiverAudioPipeline(nullptr),
@@ -33,7 +32,7 @@ bool MultimediaReceiver::initialize()
     jitterbufferVideo = gst_element_factory_make("rtpjitterbuffer", "jitterbufferVideo");
     videoDepay = gst_element_factory_make("rtph264depay", "videoDepay");
     videoDec = gst_element_factory_make("avdec_h264", "videoDec");
-    videoSink = gst_element_factory_make("autovideosink", "videoSink");
+    videoSink = gst_element_factory_make("d3dvideosink", "videoSink");
 
     // Create receiver audio pipeline
     receiverAudioPipeline = gst_pipeline_new("receiverAudioPipeline");
@@ -71,9 +70,15 @@ bool MultimediaReceiver::initialize()
 
     // Get the bus for the pipelines
     receiverVideoBus = gst_element_get_bus(receiverVideoPipeline);
+    receiverAudioBus = gst_element_get_bus(receiverAudioPipeline);
 
     // Add watch to the bus to handle messages
-    gst_bus_add_watch(receiverVideoBus, (GstBusFunc)handle_receiver_video_bus_message, this);
+    gst_bus_add_watch(receiverVideoBus, (GstBusFunc)handle_receiver_audio_bus_message, this);
+    gst_bus_add_watch(receiverAudioBus, (GstBusFunc)handle_receiver_audio_bus_message, this);
+
+    // Get the sink pad of the sink element
+    GstPad* pad = gst_element_get_static_pad(videoCapsfilter, "sink");
+    gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)probe_callback, NULL, NULL);
 
     return true;
 }
@@ -116,6 +121,13 @@ void MultimediaReceiver::cleanup()
     {
         gst_object_unref(receiverVideoBus);
         receiverVideoBus = nullptr;
+    }
+
+    // Release audio bus
+    if (receiverAudioBus)
+    {
+        gst_object_unref(receiverAudioBus);
+        receiverAudioBus = nullptr;
     }
 }
 
@@ -176,6 +188,18 @@ void MultimediaReceiver::setRTP()
     gst_caps_unref(audioCaps);
 }
 
+void MultimediaReceiver::setWindow(void* hVideo)
+{
+    // VideoDisplaySink를 윈도우와 연결
+     // 비디오 출력 설정
+    g_object_set(G_OBJECT(videoSink), "force-aspect-ratio", TRUE, NULL);
+
+    // 비디오 오버레이 설정
+    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(videoSink), (guintptr)hVideo);
+
+    //g_object_set(G_OBJECT(videoDisplaySink), "window-handle", reinterpret_cast<guintptr>(hVideo), nullptr);
+}
+
 static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, gpointer data)
 {
     MultimediaReceiver* receiver = static_cast<MultimediaReceiver*>(data);
@@ -203,6 +227,49 @@ static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, 
         GstState old_state, new_state, pending_state;
         gst_message_parse_state_changed(msg, &old_state, &new_state, &pending_state);
         g_print("Receiver Video state changed from %s to %s\n", gst_element_state_get_name(old_state), gst_element_state_get_name(new_state));
+        break;
+    }
+    case GST_MESSAGE_BUFFERING:
+    {
+        gint percent = 0;
+        gst_message_parse_buffering(msg, &percent);
+        g_print("Buffering %d%%\n", percent);
+        break;
+    }
+    default:
+        break;
+    }
+
+    return TRUE;
+}
+
+static gboolean handle_receiver_audio_bus_message(GstBus* bus, GstMessage* msg, gpointer data)
+{
+    MultimediaReceiver* receiver = static_cast<MultimediaReceiver*>(data);
+
+    switch (GST_MESSAGE_TYPE(msg))
+    {
+    case GST_MESSAGE_ERROR:
+    {
+        GError* err;
+        gchar* debug_info;
+        gst_message_parse_error(msg, &err, &debug_info);
+        g_printerr("Error received from element %s: %s\n", GST_OBJECT_NAME(msg->src), err->message);
+        g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
+        g_error_free(err);
+        g_free(debug_info);
+        receiver->stopReceiver(); // Quit the main loop in case of an error
+        break;
+    }
+    case GST_MESSAGE_EOS:
+        g_print("End-Of-Stream reached.\n");
+        receiver->stopReceiver(); // Quit the main loop when the end of the stream is reached
+        break;
+    case GST_MESSAGE_STATE_CHANGED:
+    {
+        GstState old_state, new_state, pending_state;
+        gst_message_parse_state_changed(msg, &old_state, &new_state, &pending_state);
+        g_print("Receiver Audio state changed from %s to %s\n", gst_element_state_get_name(old_state), gst_element_state_get_name(new_state));
         break;
     }
     case GST_MESSAGE_BUFFERING:

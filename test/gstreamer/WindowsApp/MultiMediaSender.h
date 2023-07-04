@@ -24,7 +24,7 @@ public:
     void setVideoFlipMethod(int method);
     void setVideoEncTune(int tune);
     void setAudioOpusencAudioType(int audioType);
-
+    void setWindow(void* hVideo);
 private:
     GstElement* senderVideoPipeline;
     GstElement* senderAudioPipeline;
@@ -39,6 +39,7 @@ private:
     GstElement* queueDisplay;
     GstElement* queueNetwork;
     GstElement* videoDisplaySink;
+    GstElement* videoSinkWindow;
 
     GstElement* audioSrc;
     GstElement* audioConv;

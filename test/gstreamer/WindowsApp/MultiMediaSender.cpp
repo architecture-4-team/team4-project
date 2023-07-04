@@ -1,4 +1,6 @@
 #include "MultiMediaSender.h"
+#include <gst/gst.h>
+#include <gst/video/videooverlay.h>
 
 static gboolean handle_sender_video_bus_message(GstBus* bus, GstMessage* msg, gpointer data);
 static gboolean handle_sender_audio_bus_message(GstBus* bus, GstMessage* msg, gpointer data);
@@ -38,7 +40,9 @@ bool MultimediaSender::initialize()
     tee = gst_element_factory_make("tee", "tee");
     queueDisplay = gst_element_factory_make("queue", "queueDisplay");
     queueNetwork = gst_element_factory_make("queue", "queueNetwork");
-    videoDisplaySink = gst_element_factory_make("autovideosink", "videoSinkDisplay");
+    
+    //videoDisplaySink = gst_element_factory_make("autovideosink", "videoSinkDisplay");
+    videoDisplaySink = gst_element_factory_make("d3dvideosink", "videoSinkDisplay");
 
     // Create sender audio pipeline
     senderAudioPipeline = gst_pipeline_new("senderAudioPipeline");
@@ -217,6 +221,17 @@ void MultimediaSender::setAudioOpusencAudioType(int audioType)
     g_object_set(G_OBJECT(audioOpusenc), "audio-type", audioType, nullptr);
 }
 
+void MultimediaSender::setWindow(void* hVideo)
+{
+    // VideoDisplaySink를 윈도우와 연결
+     // 비디오 출력 설정
+    g_object_set(G_OBJECT(videoDisplaySink), "force-aspect-ratio", TRUE, NULL);
+
+    // 비디오 오버레이 설정
+    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(videoDisplaySink), (guintptr)hVideo);
+
+    //g_object_set(G_OBJECT(videoDisplaySink), "window-handle", reinterpret_cast<guintptr>(hVideo), nullptr);
+}
 
 static gboolean handle_sender_video_bus_message(GstBus* bus, GstMessage* msg, gpointer data)
 {
