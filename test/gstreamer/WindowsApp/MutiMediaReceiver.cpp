@@ -131,7 +131,7 @@ void MultimediaReceiver::cleanup()
     }
 }
 
-void MultimediaReceiver::startReceiver()
+void MultimediaReceiver::start()
 {
     if (receiverVideoPipeline)
         gst_element_set_state(receiverVideoPipeline, GST_STATE_PLAYING);
@@ -149,7 +149,7 @@ void MultimediaReceiver::startReceiver()
     g_main_loop_unref(receiverLoop);
 }
 
-void MultimediaReceiver::stopReceiver()
+void MultimediaReceiver::stop()
 {
     if (receiverVideoPipeline)
         gst_element_set_state(receiverVideoPipeline, GST_STATE_NULL);
@@ -215,12 +215,12 @@ static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, 
         g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
         g_error_free(err);
         g_free(debug_info);
-        receiver->stopReceiver(); // Quit the main loop in case of an error
+        receiver->stop(); // Quit the main loop in case of an error
         break;
     }
     case GST_MESSAGE_EOS:
         g_print("End-Of-Stream reached.\n");
-        receiver->stopReceiver(); // Quit the main loop when the end of the stream is reached
+        receiver->stop(); // Quit the main loop when the end of the stream is reached
         break;
     case GST_MESSAGE_STATE_CHANGED:
     {
@@ -258,12 +258,12 @@ static gboolean handle_receiver_audio_bus_message(GstBus* bus, GstMessage* msg, 
         g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
         g_error_free(err);
         g_free(debug_info);
-        receiver->stopReceiver(); // Quit the main loop in case of an error
+        receiver->stop(); // Quit the main loop in case of an error
         break;
     }
     case GST_MESSAGE_EOS:
         g_print("End-Of-Stream reached.\n");
-        receiver->stopReceiver(); // Quit the main loop when the end of the stream is reached
+        receiver->stop(); // Quit the main loop when the end of the stream is reached
         break;
     case GST_MESSAGE_STATE_CHANGED:
     {

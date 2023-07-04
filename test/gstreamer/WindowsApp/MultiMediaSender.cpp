@@ -149,7 +149,7 @@ void MultimediaSender::cleanup()
     }
 }
 
-void MultimediaSender::startSender()
+void MultimediaSender::start()
 {
     if (senderVideoPipeline)
         gst_element_set_state(senderVideoPipeline, GST_STATE_PLAYING);
@@ -167,7 +167,7 @@ void MultimediaSender::startSender()
     g_main_loop_unref(mainLoop);
 }
 
-void MultimediaSender::stopSender()
+void MultimediaSender::stop()
 {
     if (senderVideoPipeline)
         gst_element_set_state(senderVideoPipeline, GST_STATE_NULL);
@@ -248,12 +248,12 @@ static gboolean handle_sender_video_bus_message(GstBus* bus, GstMessage* msg, gp
         g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
         g_error_free(err);
         g_free(debug_info);
-        sender->stopSender(); // Quit the main loop in case of an error
+        sender->stop(); // Quit the main loop in case of an error
         break;
     }
     case GST_MESSAGE_EOS:
         g_print("End-Of-Stream reached.\n");
-        sender->stopSender(); // Quit the main loop when the end of the stream is reached
+        sender->stop(); // Quit the main loop when the end of the stream is reached
         break;
     case GST_MESSAGE_STATE_CHANGED:
     {
@@ -291,12 +291,12 @@ static gboolean handle_sender_audio_bus_message(GstBus* bus, GstMessage* msg, gp
         g_printerr("Debugging information: %s\n", debug_info ? debug_info : "none");
         g_error_free(err);
         g_free(debug_info);
-        sender->stopSender(); // Quit the main loop in case of an error
+        sender->stop(); // Quit the main loop in case of an error
         break;
     }
     case GST_MESSAGE_EOS:
         g_print("End-Of-Stream reached.\n");
-        sender->stopSender(); // Quit the main loop when the end of the stream is reached
+        sender->stop(); // Quit the main loop when the end of the stream is reached
         break;
     case GST_MESSAGE_STATE_CHANGED:
     {
