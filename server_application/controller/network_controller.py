@@ -1,7 +1,11 @@
+from PyQt5.QtCore import QObject, pyqtSignal
 
 
-class NetworkController:
+class NetworkController(QObject):
+    signal_login = pyqtSignal(str, object)
+
     def __init__(self, network_manager):
+        super().__init__()
         self.network_manager = network_manager
         self.network_manager.start_network_services()
 
@@ -19,7 +23,10 @@ class NetworkController:
         # self.network_manager.send_tcp_data(data, client_socket)
         # 수신한 데이터 파싱 (별도의 롤 분리 필요, signal/slot 구조로 연결? )
 
-        # 로그인인 경우 ( )
+        # 로그인인 경우 ( ) -> Login 객체로 이벤트 전달
+        self.signal_login.emit(data.decode(), client_socket)
+
+        # call -> callbroker 로 이벤트 전달
 
     def handle_udp_data(self, data, address):
         # UDP 데이터 수신 이벤트 처리 로직
