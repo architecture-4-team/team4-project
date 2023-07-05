@@ -51,6 +51,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK    ChangePW(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -215,6 +216,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             // 메뉴 선택을 구문 분석합니다:
             switch (wmId)
             {
+            case IDM_CHANGE_PW:
+                DialogBox(hInst, MAKEINTRESOURCE(IDD_CHANGE_PW_BOX), hWnd, ChangePW);
+                break;
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
@@ -317,6 +321,44 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         {
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+// popup of change password
+INT_PTR CALLBACK ChangePW(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        return (INT_PTR)TRUE;
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK_CHANGE_PW)
+        {
+            WCHAR currentPassword[256];
+            WCHAR newPassword[256];
+            WCHAR checkPassword[256];
+            GetDlgItemText(hDlg, IDC_EDIT_CURRENT_PW, currentPassword, 256);
+            GetDlgItemText(hDlg, IDC_EDIT_NEW_PW, newPassword, 256);
+            GetDlgItemText(hDlg, IDC_EDIT_CHECK_PW, checkPassword, 256);
+
+            if (wcscmp(currentPassword, L"") == 0 || wcscmp(newPassword, L"") == 0 || wcscmp(checkPassword, L"") == 0)
+            {
+                MessageBox(hDlg, L"There are values ​​not entered.Please enter again.", L"Change Password", MB_OK | MB_ICONERROR);
+            }
+            else
+            {
+                MessageBox(hDlg, L"The password was changed successfully.", L"Change Password", MB_OK | MB_ICONERROR);
+                EndDialog(hDlg, LOWORD(wParam));
+                return (INT_PTR)TRUE;
+            }
+        }
+        else if (LOWORD(wParam) == IDCANCEL_CHANGE_PW || LOWORD(wParam) == IDCANCEL) {
+            EndDialog(hDlg, LOWORD(wParam));
+            return TRUE;
         }
         break;
     }
