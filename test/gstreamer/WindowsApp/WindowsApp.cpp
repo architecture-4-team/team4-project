@@ -219,6 +219,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case IDM_CHANGE_PW:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_CHANGE_PW_BOX), hWnd, ChangePW);
                 break;
+            case IDM_CHANGE_CODEC:
+                MessageBox(hWnd, L"Working on.", L"Change Codec", MB_OK | MB_ICONERROR);
+                break;
+            case IDM_CHANGE_ENCRIPTION:
+                MessageBox(hWnd, L"Working on.", L"Change Encroption", MB_OK | MB_ICONERROR);
+                break;
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
