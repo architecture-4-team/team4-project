@@ -255,6 +255,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             UpdateWindow(hLoginDialog);
             EnableWindow(hWnd, FALSE);
             SetForegroundWindow(hLoginDialog);
+            SetActiveWindow(hLoginDialog);
         }
 
         break;
