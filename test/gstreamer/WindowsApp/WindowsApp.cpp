@@ -159,22 +159,28 @@ INT_PTR CALLBACK LoginDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
-        case IDOK:
-            // Perform login validation
-            // (Example: check if username and password are "admin")
-            WCHAR username[256];
-            WCHAR password[256];
-//            GetDlgItemText(hwndDlg, IDC_EDIT_USERNAME, username, 256);
-//            GetDlgItemText(hwndDlg, IDC_EDIT_PASSWORD, password, 256);
+        case ID_LOGIN:
+            if (HIWORD(wParam) == BN_CLICKED) {
+                WCHAR username[256];
+                WCHAR password[256];
+                GetDlgItemText(hwndDlg, IDC_EDIT_ID, username, 256);
+                GetDlgItemText(hwndDlg, IDC_EDIT_PASSWORD, password, 256);
 
-            if (wcscmp(username, L"admin") == 0 && wcscmp(password, L"admin") == 0)
-            {
-                MessageBox(hwndDlg, L"Login successful!", L"Login", MB_OK | MB_ICONINFORMATION);
-                EndDialog(hwndDlg, IDOK);
+                if (wcscmp(username, L"admin") == 0 && wcscmp(password, L"admin") == 0)
+                {
+                    MessageBox(hwndDlg, L"Login successful!", L"Login", MB_OK | MB_ICONINFORMATION);
+                    EndDialog(hwndDlg, IDOK);
+                }
+                else
+                {
+                    MessageBox(hwndDlg, L"Invalid username or password! Try agin.", L"Login", MB_OK | MB_ICONERROR);
+                }
             }
-            else
-            {
-                MessageBox(hwndDlg, L"Invalid username or password!", L"Login", MB_OK | MB_ICONERROR);
+            return TRUE;
+
+        case ID_REGSTER:
+            if (HIWORD(wParam) == BN_CLICKED) {
+                MessageBox(hwndDlg, L"register button is clicked.", L"Login", MB_OK | MB_ICONINFORMATION);
             }
             return TRUE;
 
