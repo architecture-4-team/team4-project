@@ -14,7 +14,6 @@ ContactManager::~ContactManager() {
 
 bool ContactManager::doSomething()
 {
-	g_print("dododo");
 	return true;
 }
 

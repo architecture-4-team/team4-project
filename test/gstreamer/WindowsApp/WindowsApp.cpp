@@ -163,6 +163,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
+
 int initSocketCommunication() 
 {
     WSADATA wsaData;
@@ -201,6 +202,31 @@ int initSocketCommunication()
     }
 }
 
+char* SendAndReceive(const char* msg)
+{
+    // Send and receive data
+    char buffer[4096]{};
+    int bytesReceived = 0;
+
+    // send message
+    g_print("send message: ");
+    g_print(msg);
+    g_print("\n");
+    if (send(clientSocket, msg, strlen(msg), 0) == SOCKET_ERROR) {
+        g_print("Failed to send data to the server.");
+    }
+    else {
+        bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+        if (bytesReceived > 0) {
+            g_print("Received data from server: ");
+            g_print(buffer);
+            g_print("\n");
+        }
+    }
+
+    return buffer;
+}
+
 INT_PTR CALLBACK LoginDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
@@ -213,7 +239,7 @@ INT_PTR CALLBACK LoginDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM 
         {
         case ID_LOGIN:
             if (HIWORD(wParam) == BN_CLICKED) {
-                mContactManager->doSomething();
+
                 WCHAR username[256];
                 WCHAR password[256];
                 GetDlgItemText(hwndDlg, IDC_EDIT_ID, username, 256);
@@ -226,22 +252,11 @@ INT_PTR CALLBACK LoginDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM 
                 }
                 else
                 {
-
-                    // Send and receive data
-                    const char* message = "Hello, server!";
-                    char buffer[4096]{};
-                    int bytesReceived = 0;
-
-                    if (send(clientSocket, message, strlen(message), 0) == SOCKET_ERROR) {
-                        g_print("Failed to send data to the server.");
-                    }
-                    else {
-                        bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
-                        if (bytesReceived > 0) {
-                            g_print("Received data from server: ");
-                            g_print(buffer);
-                        }
-                    }
+                    const char* message = "hello???";
+                    char * result = SendAndReceive(message);
+                    g_print("messge is: ");
+                    g_print(result);
+                    g_print("\n");
 
                     MessageBox(hwndDlg, L"Invalid username or password! Try agin.", L"Login", MB_OK | MB_ICONERROR);
                 }
