@@ -1,12 +1,12 @@
 from unittest import TestCase
 
-from services.storage.mysql_service import MySQLService
+from services.storage.sqlite_service import SQLiteService
 
 
-class MySQLServiceTest(TestCase):
+class SQLiteServiceTest(TestCase):
 
     def setUp(self) -> None:
-        self.service = MySQLService()
+        self.service = SQLiteService("../../../sqlite/studio_project.db")
         self.service.connect()
 
     def tearDown(self) -> None:
@@ -19,12 +19,15 @@ class MySQLServiceTest(TestCase):
             "uuid": "user_05",
             "contact_id": "test5@lge.com",
             "email": "test5@lge.com",
-            "password": "qwerty",
+            "pwd": "qwerty",
             "firstname": "Gildong",
             "lastname": "Hong",
             "ip": "192.168.2.8",
             "status": 1,
             "summary": "test5@lge.com Gildong Hong",
+            "question1": "a1",
+            "question2": "a2",
+            "question3": "a3",
         }
         # when
         self.service.create_record(table, data)
@@ -56,18 +59,32 @@ class MySQLServiceTest(TestCase):
         # then
         self.assertGreater(len(rows), 1)
 
-    def test_update_record_when_status_is_diabled(self):
+    def test_update_record_when_status_is_changed(self):
         # given
         table = 'user_table'
         condition = {
             "uuid": "user_01"
         }
+        rows = self.service.read_records(table=table, condition=condition)
+        status = 0 if rows[0][7] else 1
         data = {
-            "status": 1
+            "status": status
         }
         # when
         self.service.update_records(table=table, condition=condition, data=data)
         # then
         rows = self.service.read_records(table=table, condition=condition)
         print(rows[0])
-        self.assertEqual(rows[0][7], 1)
+        self.assertEqual(rows[0][7], status)
+
+    def test_delete_records_when_normal(self):
+        # given
+        table = 'user_table'
+        condition = {
+            "uuid": "user_05"
+        }
+        # when
+        self.service.delete_records(table=table, condition=condition)
+        # then
+        rows = self.service.read_records(table=table, condition=condition)
+        self.assertEqual(len(rows), 0)
