@@ -27,6 +27,11 @@ MultimediaSender::~MultimediaSender()
 
 bool MultimediaSender::initialize()
 {
+	if(initMultimediaSender == TRUE)
+	{
+		return TRUE;
+	}
+
     // Create sender video pipeline
     senderVideoPipeline = gst_pipeline_new("senderVideoPipeline");
 
@@ -147,6 +152,9 @@ void MultimediaSender::cleanup()
         gst_object_unref(senderAudioBus);
         senderAudioBus = nullptr;
     }
+
+	initMultimediaSender = FALSE;
+	
 }
 
 void MultimediaSender::start()
@@ -159,6 +167,8 @@ void MultimediaSender::start()
 
     // Create a GMainLoop to handle events
     mainLoop = g_main_loop_new(nullptr, FALSE);
+
+	initMultimediaSender = TRUE;
 
     // Run the main loop
     g_main_loop_run(mainLoop);
@@ -179,20 +189,28 @@ void MultimediaSender::stop()
     g_main_loop_quit(mainLoop);
 }
 
-void MultimediaSender::setVideoResolution(int width, int height)
+void MultimediaSender::setVideoResolution()
 {
     GstCaps* videoCaps = gst_caps_new_simple("video/x-raw",
-        "width", G_TYPE_INT, width,
-        "height", G_TYPE_INT, height,
+        "width", G_TYPE_INT, sendVideoWidth,
+        "height", G_TYPE_INT, sendVideoHeight,
         nullptr);
     g_object_set(G_OBJECT(videoCapsfilter), "caps", videoCaps, nullptr);
     gst_caps_unref(videoCaps);
 }
 
-void MultimediaSender::setReceiverIP(const std::string& ip)
+
+std::string MultimediaSender::getReceiverIP()
 {
-    g_object_set(G_OBJECT(videoSink), "host", ip.c_str(), nullptr);
-    g_object_set(G_OBJECT(audioSink), "host", ip.c_str(), nullptr);
+	printf("receiveIp:%s\n", receiverIp.c_str());
+	return receiverIp;
+}
+
+void MultimediaSender::setReceiverIP()
+{
+	printf("receiveIp:%s\n", receiverIp.c_str());
+    g_object_set(G_OBJECT(videoSink), "host", receiverIp.c_str(), nullptr);
+    g_object_set(G_OBJECT(audioSink), "host", receiverIp.c_str(), nullptr);
 }
 
 void MultimediaSender::setPort(int videoPort, int audioPort)
@@ -208,12 +226,35 @@ void MultimediaSender::setCameraIndex(int index)
 
 void MultimediaSender::setVideoFlipMethod(int method)
 {
+/*
+	Video-flip-method 
+	(0) Identity (no rotation)
+	(1) Rotate clockwise 90 degrees
+	(2) Rotate 180 degrees
+	(3) Rotate counter-clockwise 90 degrees
+	(4) Flip horizontally
+	(5) Flip vertically
+	(6) Flip across upper left/lower right diagonal
+	(7) Flip across upper right/lower left diagonal
+	(8) Select flip method based on image-orientation tag
+*/	
     g_object_set(G_OBJECT(videoFlip), "method", method, nullptr);
 }
 
-void MultimediaSender::setVideoEncTune(int tune)
+void MultimediaSender::setVideoEncBitRate()
 {
-    g_object_set(G_OBJECT(videoEnc), "tune", tune, nullptr);
+	GstElement *encoder = videoEnc;
+	gint bitrate;
+	g_object_get(G_OBJECT(encoder), "bitrate", &bitrate, NULL);
+	printf("EncBitRate:%u->", bitrate);
+	g_object_set(G_OBJECT(videoEnc), "bitrate", sendVideoBitRate, nullptr);
+	g_object_get(G_OBJECT(encoder), "bitrate", &bitrate, NULL);
+	printf("%u[KBps]\n", bitrate);
+}
+
+void MultimediaSender::setVideoEncTune()
+{
+    g_object_set(G_OBJECT(videoEnc), "tune", sendVideoTune, nullptr);
 }
 
 void MultimediaSender::setAudioOpusencAudioType(int audioType)

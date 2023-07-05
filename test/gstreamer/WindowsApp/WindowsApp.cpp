@@ -18,6 +18,7 @@
 
 // functions
 LRESULT OnSize(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+RECT getWinSize(HWND hWnd);
 static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI RunSENDER(LPVOID lpParam);
 DWORD WINAPI RunRECEIVER(LPVOID lpParam);
@@ -159,6 +160,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	RECT clientRectInfo;
     switch (message)
     {
     case WM_COMMAND:
@@ -208,6 +210,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_SIZE:
         OnSize(hWnd, message, wParam, lParam);
+		clientRectInfo = getWinSize(hWnd);
         break;
     case WM_PAINT:
         {
@@ -260,14 +263,35 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
+typedef enum
+{
+	_BUTNUM_SEND_START,
+	_BUTNUM_SEND_STOP,
+	_BUTNUM_RECV_START,
+	_BUTNUM_RECV_STOP,
+	_BUTNUM_MAX
+}E_BUT_NUM;
+
 static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	const unsigned int buttonWidth	= 120;
+	const unsigned int buttonHeight	= 30;
+	const unsigned int widthMargin	= 10;
+	const unsigned int heightMargin	= 20;
+
+    unsigned int posY[_BUTNUM_MAX] = {10,10,10,10};
+    unsigned int posX[_BUTNUM_MAX] = {10,10,10,10};
+
+	posX[_BUTNUM_SEND_STOP]		= posX[_BUTNUM_SEND_START] + buttonWidth + widthMargin;
+	posX[_BUTNUM_RECV_START]	= posX[_BUTNUM_SEND_STOP] + buttonWidth + widthMargin;
+	posX[_BUTNUM_RECV_STOP]		= posX[_BUTNUM_RECV_START] + buttonWidth + widthMargin;
+
     // 버튼 생성
     CreateWindow(
         _T("button"),
         _T("Start Sender"),
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        50, 50, 150, 30,
+        posX[_BUTNUM_SEND_START], posY[_BUTNUM_SEND_START], buttonWidth, buttonHeight,
         hWnd,
         (HMENU)IDC_START_SENDER,
         ((LPCREATESTRUCT)lParam)->hInstance,
@@ -279,7 +303,7 @@ static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         _T("button"),
         _T("Stop Sender"),
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        350, 50, 150, 30,
+        posX[_BUTNUM_SEND_STOP], posY[_BUTNUM_SEND_STOP], buttonWidth, buttonHeight,
         hWnd,
         (HMENU)IDC_STOP_SENDER,
         ((LPCREATESTRUCT)lParam)->hInstance,
@@ -290,7 +314,7 @@ static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         _T("button"),
         _T("Start Receiver"),
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        50, 250, 150, 30,
+        posX[_BUTNUM_RECV_START], posY[_BUTNUM_RECV_START], buttonWidth, buttonHeight,
         hWnd,
         (HMENU)IDC_START_RECEIVER,
         ((LPCREATESTRUCT)lParam)->hInstance,
@@ -301,7 +325,7 @@ static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         _T("button"),
         _T("Stop Receiver"),
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        350, 250, 150, 30,
+        posX[_BUTNUM_RECV_STOP], posY[_BUTNUM_RECV_STOP], buttonWidth, buttonHeight,
         hWnd,
         (HMENU)IDC_STOP_RECEIVER,
         ((LPCREATESTRUCT)lParam)->hInstance,
@@ -345,6 +369,14 @@ LRESULT OnSize(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
+RECT getWinSize(HWND hWnd)
+{
+	RECT rectSizeInfo;
+	GetClientRect(hWnd, &rectSizeInfo);
+	//printf("LRTB:%u,%u,%u,%u\n", rectSizeInfo.left, rectSizeInfo.right, rectSizeInfo.top, rectSizeInfo.bottom);
+	return rectSizeInfo;
+}
+
 // 쓰레드 함수
 DWORD WINAPI RunSENDER(LPVOID lpParam)
 {
@@ -362,17 +394,13 @@ DWORD WINAPI RunSENDER(LPVOID lpParam)
     }
 
     // Set video resolution
-    dynamic_cast<MultimediaSender*>(mSender)->setVideoResolution(320, 240);
+	dynamic_cast<MultimediaSender*>(mSender)->setVideoResolution();
 
-#if LOOPBACK
+
     // Set receiver IP and port
-    dynamic_cast<MultimediaSender*>(mSender)->setReceiverIP("127.0.0.1");
+    dynamic_cast<MultimediaSender*>(mSender)->setReceiverIP();
     dynamic_cast<MultimediaSender*>(mSender)->setPort(5001,5002);
-#else
-    // Set receiver IP and port
-    dynamic_cast<MultimediaSender*>(mSender)->setReceiverIP("192.168.1.128");
-    sdynamic_cast<MultimediaSender*>(mSender)->setPort(5001, 5002);
-#endif
+
     // Set camera index (if necessary)
     dynamic_cast<MultimediaSender*>(mSender)->setCameraIndex(0);
 
@@ -380,7 +408,8 @@ DWORD WINAPI RunSENDER(LPVOID lpParam)
     dynamic_cast<MultimediaSender*>(mSender)->setVideoFlipMethod(4); // Horizontal flip
 
     // Set video encoding tune (if necessary)
-    dynamic_cast<MultimediaSender*>(mSender)->setVideoEncTune(0x00000004); // Zero latency
+	dynamic_cast<MultimediaSender*>(mSender)->setVideoEncTune(); 
+	dynamic_cast<MultimediaSender*>(mSender)->setVideoEncBitRate();
 
     // Set audio encoding type (if necessary)
     dynamic_cast<MultimediaSender*>(mSender)->setAudioOpusencAudioType(2051); // Restricted low delay
@@ -443,3 +472,5 @@ static void stopRECEIVER() {
     // Stop sender pipelines
     mReceiver->stop();
 }
+
+
