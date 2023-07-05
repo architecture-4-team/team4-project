@@ -1,22 +1,68 @@
-import mysql.connector
+import pymysql
+from pymysql.cursors import DictCursor
+
 from services.storage.istorage_service import IStorageService
 
 
 class MySQLService(IStorageService):
+
+    conn = None
+
     def connect(self):
-        # MySQL 데이터베이스에 연결하는 로직
-        pass
+        self.conn = pymysql.connect(host='localhost', user='team4', password='fantastic4', database='studio_project')
 
     def disconnect(self):
-        # MySQL 데이터베이스 연결 해제하는 로직
-        pass
+        if self.conn:
+            self.conn.close()
 
-    def execute_query(self, query):
-        # MySQL 쿼리 실행하는 로직
-        pass
+    def create_record(self, table, data: dict):
+        keys = ",".join(list(data.keys()))
+        values = tuple(data.values())
+        values_statement = ','.join(['%s' for value in list(data.values())])
 
-    def execute_select_query(self, query):
-        pass
+        with self.conn.cursor() as cursor:
+            query = f"INSERT INTO {table}({keys}) VALUES({values_statement})"
+            print(query)
+            cursor.execute(query, values)
+            self.conn.commit()
 
-    def update_record(self, table, record_id, data):
-        pass
+    def read_records(self, table: str, condition: dict):
+        where_statement = ""
+        if not condition.get("*"):
+            where_statement = f" WHERE {self._get_where_statement(list(condition.keys()))}"
+        values = tuple(condition.values())
+        with self.conn.cursor(DictCursor) as cursor:
+            query = f"SELECT * FROM {table}{where_statement}"
+            if where_statement:
+                cursor.execute(query, values)
+            else:
+                cursor.execute(query)
+            result = cursor.fetchall()
+
+            return result
+
+    def update_records(self, table, condition: dict, data: dict):
+        where_statement = self._get_where_statement(list(condition.keys()))
+        cond_values = list(condition.values())
+        statement = [f"{k}=%s" for k, v in data.items()]
+        statement = ','.join(statement)
+        values = list(data.values())
+        values.extend(cond_values)
+        with self.conn.cursor() as cursor:
+            query = f"UPDATE {table} SET {statement} WHERE {where_statement}"
+            affected_rows = cursor.execute(query, tuple(values))
+            self.conn.commit()
+
+            return affected_rows
+
+    def delete_records(self, table, condition: dict):
+        where_statement = self._get_where_statement(list(condition.keys()))
+        values = tuple(condition.values())
+        with self.conn.cursor() as cursor:
+            query = f"DELETE FROM {table} WHERE {where_statement}"
+            cursor.execute(query, values)
+            self.conn.commit()
+
+    @staticmethod
+    def _get_where_statement(keys) -> str:
+        return ' AND '.join([f'{key}=%s' for key in keys])

@@ -11,26 +11,17 @@ class IStorageService(ABC):
         pass
 
     @abstractmethod
-    def execute_query(self, query):
+    def create_record(self, table, data: dict):
         pass
 
     @abstractmethod
-    def execute_select_query(self, query):
-        pass
-
-    # REST 서비스에서 담당
-    # @abstractmethod
-    # def create_record(self, table, data):
-    #     pass
-    #
-    # @abstractmethod
-    # def read_records(self, table):
-    #     pass
-
-    @abstractmethod
-    def delete_record(self, table, record_id):
+    def read_records(self, table, condition: dict):
         pass
 
     @abstractmethod
-    def update_record(self, table, record_id, data):
+    def update_records(self, table, condition: dict, data: dict):
+        pass
+
+    @abstractmethod
+    def delete_records(self, table, condition: dict):
         pass
