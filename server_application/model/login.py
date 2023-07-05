@@ -4,6 +4,7 @@ from PyQt5.QtCore import pyqtSlot
 from model.user import User
 from model.directory_singleton import directory_service
 
+
 class Login(QObject):
     def __init__(self):
         super().__init__()

@@ -1,6 +1,7 @@
 import json
 from PyQt5.QtCore import QObject, pyqtSignal
 from model.login import Login
+from model.logout import LogOut
 
 
 class NetworkController(QObject):
@@ -47,15 +48,23 @@ class NetworkController(QObject):
             print(f'<-- Login : {return_value}, {user_uuid}')
             # response 에 대한 json 생성 필요
             if return_value:
-                ret_data = f'''{{
-                        "command": "LOGIN",
-                        "response": "OK",
-                        "contents": {{
-                            "uuid": "{user_uuid}",
-                          }},
-                        }}'''
+                # ret_data = f'''{{
+                #         "command": "LOGIN",
+                #         "response": "OK",
+                #         "contents": {{
+                #             "uuid": "{user_uuid}"
+                #           }}
+                #         }}'''
+                ret_data = '''{
+                    "command": "LOGIN",
+                    "response": "OK",
+                    "contents": {
+                        "uuid": "%s"
+                      }
+                    }''' % user_uuid
                 print(ret_data)
-                ret_data_json = json.dumps(ret_data)
+                data_json = json.loads(ret_data)
+                ret_data_json = json.dumps(data_json)
                 self.network_manager.send_tcp_data(ret_data_json.encode(), client_socket)
             else:
                 ret_data = f'''{{
@@ -63,12 +72,28 @@ class NetworkController(QObject):
                         "response": "NOT_OK",
                         "contents": {{
                             "reason": "NOT REGISTERED"
-                          }},
+                          }}
                         }}'''
-                ret_data_json = json.dumps(ret_data)
+                data_json = json.loads(ret_data)
+                ret_data_json = json.dumps(data_json)
                 self.network_manager.send_tcp_data(ret_data_json.encode(), client_socket)
+        elif payload['command'] == 'LOGOUT':
+            print(f'LOGOUT info :', payload['contents']['uuid'])
+            ret, user = LogOut.do_process(uuid=payload['contents']['uuid'])
+            ret_data = f'''{{
+                "command": "LOGOUT",
+                "response": "OK",
+                "contents": {{
+                    "uuid": "%s"
+                  }}
+                }}''' % user.uuid
+            data_json = json.loads(ret_data)
+            ret_data_json = json.dumps(data_json)
+            self.network_manager.send_tcp_data(ret_data_json.encode(), client_socket)
+            pass
+        elif payload['command'] == 'INVITE': # call -> callbroker 로 이벤트 전달
 
-        # call -> callbroker 로 이벤트 전달
+            pass
 
     def handle_udp_data(self, data, address):
         # UDP 데이터 수신 이벤트 처리 로직

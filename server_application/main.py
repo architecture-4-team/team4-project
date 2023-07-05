@@ -37,10 +37,10 @@ if __name__ == "__main__":
     # storageMan = StorageManager(ifStorage)
     # storageMan.connect_to_database()
 
-    login = Login()
+    # login = Login()
 
     # signal/slot mapping information
-    netCon.signal_login.connect(login.receive_message)
+    # netCon.signal_login.connect(login.receive_message)
 
     window.show()
     app.exec()

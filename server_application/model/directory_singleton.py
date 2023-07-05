@@ -12,22 +12,26 @@ class DirectorySingleton:
         for user in self.users:
             if user.email_id == email:
                 return True, user
-            else:
-                return False, None
+        return False, None
 
     def search_by_contactid(self, contact_id):
         for user in self.users:
             if user.email_id == contact_id:
                 return True, user
-            else:
-                return False, None
+        return False, None
 
     def search_by_socket(self, socket):
         for user in self.users:
             if user.socket_info == socket:
                 return True, user
-            else:
-                return False, None
+
+        return False, None
+
+    def search_by_uuid(self, uuid):
+        for user in self.users:
+            if str(user.uuid) == uuid:
+                return True, user
+        return False, None
 
     def print_info(self):
         for user in self.users:
