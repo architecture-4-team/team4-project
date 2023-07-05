@@ -44,6 +44,8 @@ MultimediaInterface* mReceiver = new MultimediaReceiver();
 HWND videoWindow0; // Video 출력용 윈도우 핸들
 HWND videoWindow1; // Video 출력용 윈도우 핸들
 
+HWND hLoginDialog;
+
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -147,6 +149,46 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
+INT_PTR CALLBACK LoginDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        return TRUE;
+
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDOK:
+            // Perform login validation
+            // (Example: check if username and password are "admin")
+            WCHAR username[256];
+            WCHAR password[256];
+//            GetDlgItemText(hwndDlg, IDC_EDIT_USERNAME, username, 256);
+//            GetDlgItemText(hwndDlg, IDC_EDIT_PASSWORD, password, 256);
+
+            if (wcscmp(username, L"admin") == 0 && wcscmp(password, L"admin") == 0)
+            {
+                MessageBox(hwndDlg, L"Login successful!", L"Login", MB_OK | MB_ICONINFORMATION);
+                EndDialog(hwndDlg, IDOK);
+            }
+            else
+            {
+                MessageBox(hwndDlg, L"Invalid username or password!", L"Login", MB_OK | MB_ICONERROR);
+            }
+            return TRUE;
+
+        case IDCANCEL:
+            EndDialog(hwndDlg, IDCANCEL);
+            return TRUE;
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+
 //
 //  함수: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -205,10 +247,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_CREATE:
         OnCreate(hWnd, message, wParam, lParam);
+
+        hLoginDialog = CreateDialog(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_LOGIN_BOX), hWnd, LoginDialogProc);
+        if (hLoginDialog)
+        {
+            ShowWindow(hLoginDialog, SW_SHOW);
+            UpdateWindow(hLoginDialog);
+            EnableWindow(hWnd, FALSE);
+            SetForegroundWindow(hLoginDialog);
+        }
+
         break;
+
     case WM_SIZE:
         OnSize(hWnd, message, wParam, lParam);
         break;
+
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
@@ -217,6 +271,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             EndPaint(hWnd, &ps);
         }
         break;
+
     case WM_DESTROY:
         PostQuitMessage(0);
         FreeConsole();
@@ -234,6 +289,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         delete mReceiver;
 
         break;
+
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -259,6 +315,8 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
+
+
 
 static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
