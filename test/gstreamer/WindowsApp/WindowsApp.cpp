@@ -7,12 +7,17 @@
 #include <Windows.h>
 #include <gst/gst.h>
 #include <stdio.h>
-#include <gst/gst.h>
+#include <iostream>
+#include <Winsock2.h>
+#include <WS2tcpip.h>
+
+#pragma comment(lib, "ws2_32.lib")
 
 #include "MultimediaSender.h"
 #include "MultimediaReceiver.h"
 #include "MultimediaInterface.h"
 #include "global_setting.h"
+#include "ContactManager.h"
 
 #define MAX_LOADSTRING 100
 
@@ -41,6 +46,10 @@ HANDLE hReceiverThread;
 MultimediaInterface* mSender = new MultimediaSender();
 MultimediaInterface* mReceiver = new MultimediaReceiver();
 
+ContactManager* mContactManager = new ContactManager();
+
+SOCKET clientSocket;
+
 HWND videoWindow0; // Video 출력용 윈도우 핸들
 HWND videoWindow1; // Video 출력용 윈도우 핸들
 
@@ -62,6 +71,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: 여기에 코드를 입력합니다.
+
+    // init socket communication
+    initSocketCommunication();
+
     SetStdOutToNewConsole();
 
     // Initialize GStreamer
@@ -150,6 +163,44 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
+int initSocketCommunication() 
+{
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        std::cerr << "Failed to initialize Winsock." << std::endl;
+        return 1;
+    }
+
+    // Create a socket
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (clientSocket == INVALID_SOCKET) {
+        g_print("Failed to create socket.");
+        WSACleanup();
+        return 1;
+    }
+
+    // Set up server details
+    const char* serverIP = "127.0.0.1";
+    const int serverPort = 10000;
+    sockaddr_in serverAddress{};
+    serverAddress.sin_family = AF_INET;
+    if (inet_pton(AF_INET, serverIP, &(serverAddress.sin_addr)) <= 0) {
+        std::cerr << "Invalid server IP address." << std::endl;
+        closesocket(clientSocket);
+        WSACleanup();
+        return 1;
+    }
+    serverAddress.sin_port = htons(serverPort);
+
+    // Connect to the server
+    if (connect(clientSocket, reinterpret_cast<sockaddr*>(&serverAddress), sizeof(serverAddress)) == SOCKET_ERROR) {
+        g_print("Failed to connect to the server.");
+        closesocket(clientSocket);
+        WSACleanup();
+        return 1;
+    }
+}
+
 INT_PTR CALLBACK LoginDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
@@ -162,6 +213,7 @@ INT_PTR CALLBACK LoginDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM 
         {
         case ID_LOGIN:
             if (HIWORD(wParam) == BN_CLICKED) {
+                mContactManager->doSomething();
                 WCHAR username[256];
                 WCHAR password[256];
                 GetDlgItemText(hwndDlg, IDC_EDIT_ID, username, 256);
@@ -174,6 +226,23 @@ INT_PTR CALLBACK LoginDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM 
                 }
                 else
                 {
+
+                    // Send and receive data
+                    const char* message = "Hello, server!";
+                    char buffer[4096]{};
+                    int bytesReceived = 0;
+
+                    if (send(clientSocket, message, strlen(message), 0) == SOCKET_ERROR) {
+                        g_print("Failed to send data to the server.");
+                    }
+                    else {
+                        bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+                        if (bytesReceived > 0) {
+                            g_print("Received data from server: ");
+                            g_print(buffer);
+                        }
+                    }
+
                     MessageBox(hwndDlg, L"Invalid username or password! Try agin.", L"Login", MB_OK | MB_ICONERROR);
                 }
             }

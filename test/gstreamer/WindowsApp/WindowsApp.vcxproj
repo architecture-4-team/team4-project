@@ -501,6 +501,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ContactManager.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="global_setting.h" />
     <ClInclude Include="MultimediaInterface.h" />
@@ -512,6 +513,7 @@
     <ClInclude Include="WindowsApp.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ContactManager.cpp" />
     <ClCompile Include="MultiMediaSender.cpp" />
     <ClCompile Include="Multimedia_Manager.cpp" />
     <ClCompile Include="MutiMediaReceiver.cpp" />
