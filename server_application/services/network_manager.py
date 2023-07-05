@@ -55,6 +55,11 @@ class NetworkManager:
         # client_socket.sendall(data)
         for tcp_service in self.tcp_services:
             if isinstance(tcp_service, TCPService):
+                # Test
+                # for cs in self.client_sockets:
+                #     if client_socket != cs:
+                #         tcp_service.sendto(data, cs)
+                #
                 tcp_service.sendto(data, client_socket)
 
     def receive_tcp_data(self):
