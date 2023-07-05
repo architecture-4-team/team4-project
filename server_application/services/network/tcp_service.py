@@ -29,7 +29,7 @@ class TCPService(INetworkService, ABC):
             client_socket, client_address = self.server_socket.accept()
             print(f'Accepted connection from {client_address}')
             # self.client_sockets.append(client_socket)
-            self.notify_client_connected(client_socket)
+            self.notify_client_connected(client_socket, connected=True)
             client_thread = threading.Thread(target=self.handle_client, args=(client_socket,))
             client_thread.setDaemon(True)
             client_thread.start()
@@ -70,6 +70,7 @@ class TCPService(INetworkService, ABC):
         finally:
             client_socket.close()
             print("TCPService: Client connection closed")
+            self.notify_client_connected(client_socket, connected=False)
         print('receive')
 
     def set_receive_callback(self, callback):
@@ -78,8 +79,8 @@ class TCPService(INetworkService, ABC):
     def set_client_socketinfo_callback(self, callback):
         self.client_socketinfo_callback = callback
 
-    def notify_client_connected(self, client_socket):
+    def notify_client_connected(self, client_socket, connected):
         if self.client_socketinfo_callback:
-            self.client_socketinfo_callback(client_socket)
+            self.client_socketinfo_callback(client_socket, connected)
         else:
             print('No client callback registered')

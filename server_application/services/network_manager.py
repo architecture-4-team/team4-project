@@ -3,6 +3,7 @@ from services.network.tcp_service import TCPService
 from services.network.udp_service import UDPService
 import threading
 from typing import List
+from model.directory_singleton import directory_service
 
 
 class NetworkManager:
@@ -76,6 +77,13 @@ class NetworkManager:
         # return self.udp_service.receive()
         pass
 
-    def handle_client_connected(self, client_socket):
-        self.client_sockets.append(client_socket)
-        print(f"append handle_client_connected {client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}")
+    def handle_client_connected(self, client_socket, connected):
+        if connected:
+            self.client_sockets.append(client_socket)
+            print(f"append handle_client_connected {client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}")
+        else:
+            self.client_sockets.remove(client_socket)
+            ret, user = directory_service.search_by_socket(client_socket)
+            if ret:
+                directory_service.remove(user)
+                directory_service.print_info()

@@ -34,37 +34,39 @@ class NetworkController(QObject):
             pass
 
         # 프로토콜 parsing 을 위해 분리 필요!!
-        # if payload['command'] == 'LOGIN': # 로그인인 경우 ( ) -> Login 객체로 이벤트 전달
-        #     print(f'contents :', payload['contents']['email'], payload['contents']['password'])
-        #
-        #     # signal/slot 을 사용하는 방법
-        #     # self.signal_login.emit(data.decode(), client_socket)
-        #
-        #     # static method 를 사용하는 방법
-        #     return_value, user_uuid = Login.do_process(email=payload['contents']['email'], password=payload['contents']['password'])
-        #     print(f'<-- Login : {return_value}, {user_uuid}')
-        #     # response 에 대한 json 생성 필요
-        #     if return_value:
-        #         ret_data = f'''{{
-        #                 "command": "LOGIN",
-        #                 "response": "OK",
-        #                 "contents": {{
-        #                     "uuid": "{user_uuid}",
-        #                   }},
-        #                 }}'''
-        #         print(ret_data)
-        #         ret_data_json = json.dumps(ret_data)
-        #         self.network_manager.send_tcp_data(ret_data_json.encode(), client_socket)
-        #     else:
-        #         ret_data = f'''{{
-        #                 "command": "LOGIN",
-        #                 "response": "NOT_OK",
-        #                 "contents": {{
-        #                     "reason": "NOT REGISTERED"
-        #                   }},
-        #                 }}'''
-        #         ret_data_json = json.dumps(ret_data)
-        #         self.network_manager.send_tcp_data(ret_data_json.encode(), client_socket)
+        if payload['command'] == 'LOGIN': # 로그인인 경우 ( ) -> Login 객체로 이벤트 전달
+            print(f'contents :', payload['contents']['email'], payload['contents']['password'])
+
+            # signal/slot 을 사용하는 방법
+            # self.signal_login.emit(data.decode(), client_socket)
+
+            # static method 를 사용하는 방법
+            return_value, user_uuid = Login.do_process(email=payload['contents']['email'],
+                                                       password=payload['contents']['password'],
+                                                       socket=client_socket)
+            print(f'<-- Login : {return_value}, {user_uuid}')
+            # response 에 대한 json 생성 필요
+            if return_value:
+                ret_data = f'''{{
+                        "command": "LOGIN",
+                        "response": "OK",
+                        "contents": {{
+                            "uuid": "{user_uuid}",
+                          }},
+                        }}'''
+                print(ret_data)
+                ret_data_json = json.dumps(ret_data)
+                self.network_manager.send_tcp_data(ret_data_json.encode(), client_socket)
+            else:
+                ret_data = f'''{{
+                        "command": "LOGIN",
+                        "response": "NOT_OK",
+                        "contents": {{
+                            "reason": "NOT REGISTERED"
+                          }},
+                        }}'''
+                ret_data_json = json.dumps(ret_data)
+                self.network_manager.send_tcp_data(ret_data_json.encode(), client_socket)
 
         # call -> callbroker 로 이벤트 전달
 
