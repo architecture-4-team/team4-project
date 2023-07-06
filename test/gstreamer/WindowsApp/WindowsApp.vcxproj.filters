@@ -30,7 +30,7 @@
     <ClInclude Include="global_setting.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Multimedia_Manager.h">
+    <ClInclude Include="MultimediaManager.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="MultiMediaSender.h">
@@ -47,7 +47,7 @@
     <ClCompile Include="WindowsApp.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Multimedia_Manager.cpp">
+    <ClCompile Include="MultimediaManager.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="MultiMediaSender.cpp">

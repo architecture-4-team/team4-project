@@ -1,10 +1,11 @@
 #include "MultiMediaSender.h"
-#include <gst/gst.h>
+#include <iostream>
 #include <gst/video/videooverlay.h>
 
 static gboolean handle_sender_video_bus_message(GstBus* bus, GstMessage* msg, gpointer data);
 static gboolean handle_sender_audio_bus_message(GstBus* bus, GstMessage* msg, gpointer data);
 
+std::mutex MultimediaSender::instanceMutex;
 
 MultimediaSender::MultimediaSender()
     : senderVideoPipeline(nullptr), senderAudioPipeline(nullptr),
@@ -13,7 +14,7 @@ MultimediaSender::MultimediaSender()
     queueDisplay(nullptr), queueNetwork(nullptr), videoDisplaySink(nullptr),
     audioSrc(nullptr), audioConv(nullptr), audioResample(nullptr),
     audioOpusenc(nullptr), audioPay(nullptr), audioSink(nullptr),
-    senderVideoBus(nullptr), senderAudioBus(nullptr)
+    senderVideoBus(nullptr), senderAudioBus(nullptr), mainLoop(nullptr)
 {
     // Initialize GStreamer
     gst_init(nullptr, nullptr);

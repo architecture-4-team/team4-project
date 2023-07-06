@@ -39,7 +39,7 @@ HWND hWndMain;
 HANDLE hSenderThread;
 HANDLE hReceiverThread;
 
-MultimediaInterface* mSender = new MultimediaSender();
+MultimediaInterface& mSender = MultimediaSender::GetInstance();
 MultimediaInterface* mReceiver = new MultimediaReceiver();
 
 HWND videoWindow0; // Video 출력용 윈도우 핸들
@@ -227,9 +227,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         pCout = NULL;
 
         // MultimediaSender 객체 삭제
-        mSender->stop();
-        mSender->cleanup();
-        delete mSender;
+        mSender.stop();
+        mSender.cleanup();
 
         // MultimediaReceiver 객체 삭제
         mReceiver->stop();
@@ -387,37 +386,37 @@ DWORD WINAPI RunSENDER(LPVOID lpParam)
     HWND hWnd = reinterpret_cast<HWND>(lpParam);
 
     // Initialize sender pipelines
-    if (!mSender->initialize())
+    if (!mSender.initialize())
     {
         std::cerr << "Failed to initialize sender pipelines." << std::endl;
         return 1;
     }
 
     // Set video resolution
-	dynamic_cast<MultimediaSender*>(mSender)->setVideoResolution();
+	dynamic_cast<MultimediaSender&>(mSender).setVideoResolution();
 
 
     // Set receiver IP and port
-    dynamic_cast<MultimediaSender*>(mSender)->setReceiverIP();
-    dynamic_cast<MultimediaSender*>(mSender)->setPort(5001,5002);
+    dynamic_cast<MultimediaSender&>(mSender).setReceiverIP();
+    dynamic_cast<MultimediaSender&>(mSender).setPort(5001,5002);
 
     // Set camera index (if necessary)
-    dynamic_cast<MultimediaSender*>(mSender)->setCameraIndex(0);
+    dynamic_cast<MultimediaSender&>(mSender).setCameraIndex(0);
 
     // Set video flip method (if necessary)
-    dynamic_cast<MultimediaSender*>(mSender)->setVideoFlipMethod(4); // Horizontal flip
+    dynamic_cast<MultimediaSender&>(mSender).setVideoFlipMethod(4); // Horizontal flip
 
     // Set video encoding tune (if necessary)
-	dynamic_cast<MultimediaSender*>(mSender)->setVideoEncTune(); 
-	dynamic_cast<MultimediaSender*>(mSender)->setVideoEncBitRate();
+	dynamic_cast<MultimediaSender&>(mSender).setVideoEncTune(); 
+	dynamic_cast<MultimediaSender&>(mSender).setVideoEncBitRate();
 
     // Set audio encoding type (if necessary)
-    dynamic_cast<MultimediaSender*>(mSender)->setAudioOpusencAudioType(2051); // Restricted low delay
+    dynamic_cast<MultimediaSender&>(mSender).setAudioOpusencAudioType(2051); // Restricted low delay
 
-    mSender->setWindow(videoWindow0);
+    mSender.setWindow(videoWindow0);
 
     // Start sender pipelines
-    mSender->start();
+    mSender.start();
 
     WaitForSingleObject(hSenderThread, INFINITE);
     CloseHandle(hSenderThread);
@@ -465,7 +464,7 @@ static void SetStdOutToNewConsole(void)
 
 static void stopSENDER() {
     // Stop sender pipelines
-    mSender->stop();
+    mSender.stop();
 }
 
 static void stopRECEIVER() {
