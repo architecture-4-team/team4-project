@@ -16,16 +16,26 @@ Including another URLconf
 """
 from django.urls import path
 
-from project.views import LoginView, UserInfo, UserList, Login, ContactsView, RegisterView, UpdateView, ResetView
+from project.api.action import Login, LogOut, Register
+from project.api.contact import ContactDetail
+from project.api.user import UserList, UserDetail
+from project.views import LoginView, ContactsView, RegisterView, UpdateView, ResetView
 
 urlpatterns = [
     # api
-    path('api/register', Login.as_view()),
+    path('api/register', Register.as_view()),
     path('api/login', Login.as_view()),
+    path('api/logout', LogOut.as_view()),
     path('api/update', Login.as_view()),
     path('api/reset', Login.as_view()),
+
+    # api/user
     path('api/user', UserList.as_view()),
-    path('api/user/<uuid>', UserInfo.as_view()),
+    path('api/user/<uuid>', UserDetail.as_view()),
+
+    # api/contact
+    path('api/contact', UserList.as_view()),
+    path('api/contact/<uuid>', ContactDetail.as_view()),
 
     # html
     path('login/', LoginView.as_view()),
