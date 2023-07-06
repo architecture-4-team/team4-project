@@ -1,0 +1,133 @@
+@startuml
+
+autonumber
+participant "User App 1\n'xxx@yyy.zzz'" as ua1
+participant "Server Application" as sa
+participant "User App 2\n'aaa@bbb.ccc'" as ua2
+
+ua1 -> sa : <b>INVITE \n \
+    { \n \
+    \t"command": "INVITE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "src uuid", \n \
+    \t\t"target": "aaa@bbb.ccc"} \n \
+    }
+alt user app 2 is offline
+    sa -> ua1 : <b>CANCEL \n \
+    { \n \
+    \t"command": "CANCEL", \n \
+    \t"response": "NOT AVAILABLE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 1 uuid" \n \
+    }
+    note over ua1 : call end
+else user app 2 is busy
+    autonumber 2
+    sa -> ua1 : <b>CANCEL \n \
+    { \n \
+    \t"command": "CANCEL", \n \
+    \t"response": "BUSY", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 1 uuid" \n \
+    }
+    note over ua1 : call end
+else user app 2 is online and available
+    autonumber 2
+    sa -> ua2 : <b>INVITE \n \
+    { \n \
+    \t"command": "INVITE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 2 uuid", \n \
+    \t\t"email": "xxx@yyy.zzz"} \n \
+    \t\t"callid": "string number" \n \
+    }
+end
+|||
+alt accept a call
+    ua2 -> sa : <b>ACCEPT \n \
+    { \n \
+    \t"command": "ACCEPT", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 2 uuid", \n \
+    \t\t"callid": "string number" \n \
+    }
+    sa -> ua1 : <b>ACCEPT \n \
+    { \n \
+    \t"command": "ACCEPT", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 1 uuid", \n \
+    \t\t"callid": "string number" \n \
+    }
+else reject a call
+    autonumber 3
+    ua2 -> sa : <b>CANCEL \n \
+    { \n \
+    \t"command": "CANCEL", \n \
+    \t"response": "REJECT", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 2 uuid", \n \
+    \t\t"callid": "string number" \n \
+    }
+    sa -> ua1 : <b>CANCEL \n \
+    { \n \
+    \t"command": "CANCEL", \n \
+    \t"response": "REJECT", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 1 uuid", \n \
+    \t\t"callid": "string number" \n \
+    }
+    note over ua1 : call end
+end
+
+== a phone call in progress ==
+
+alt user app 1 attempts to end this call
+    ua1 -> sa : <b>BYE \n \
+    { \n \
+    \t"command": "BYE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 1 uuid", \n \
+    \t\t"callid": "string number" \n \
+    }
+    sa -> ua1 : <b>BYE \n \
+    { \n \
+    \t"command": "BYE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 1 uuid", \n \
+    \t\t"callid": "string number" \n \
+    }
+    sa -> ua2 : <b>BYE \n \
+    { \n \
+    \t"command": "BYE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 2 uuid", \n \
+    \t\t"callid": "string number" \n \
+    }
+    note over ua1, ua2 : call end
+else user app 2 attempts to end this call
+    autonumber 5
+    ua2 -> sa : <b>BYE \n \
+    { \n \
+    \t"command": "BYE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 2 uuid", \n \
+    \t\t"callid": "string number" \n \
+    }
+    sa -> ua2 : <b>BYE \n \
+    { \n \
+    \t"command": "BYE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 2 uuid", \n \
+    \t\t"callid": "string number" \n \
+    }
+    sa -> ua1 : <b>BYE \n \
+    { \n \
+    \t"command": "BYE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user app 1 uuid", \n \
+    \t\t"callid": "string number" \n \
+    }
+    note over ua1, ua2 : call end
+end
+
+@enduml

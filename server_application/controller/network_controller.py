@@ -2,6 +2,10 @@ import json
 from PyQt5.QtCore import QObject, pyqtSignal
 from model.login import Login
 from model.logout import LogOut
+from model.callbroker import callbroker_service
+from model.callroom import CallRoom
+from model.directory_singleton import directory_service
+from utils.call_state import CallState
 
 
 class NetworkController(QObject):
@@ -22,7 +26,8 @@ class NetworkController(QObject):
 
     def handle_tcp_data(self, data, client_socket):
         # 데이터 수신 이벤트 처리 로직
-        print(f"TCPService: Received data from client {client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}: {data.decode()}")
+        print(
+            f"TCPService: Received data from client {client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}: {data.decode()}")
         # test
         # self.network_manager.send_tcp_data(data, client_socket)
         #
@@ -35,7 +40,7 @@ class NetworkController(QObject):
             pass
 
         # 프로토콜 parsing 을 위해 분리 필요!!
-        if payload['command'] == 'LOGIN': # 로그인인 경우 ( ) -> Login 객체로 이벤트 전달
+        if payload['command'] == 'LOGIN':  # 로그인인 경우 ( ) -> Login 객체로 이벤트 전달
             print(f'contents :', payload['contents']['email'], payload['contents']['password'])
 
             # signal/slot 을 사용하는 방법
@@ -48,13 +53,6 @@ class NetworkController(QObject):
             print(f'<-- Login : {return_value}, {user_uuid}')
             # response 에 대한 json 생성 필요
             if return_value:
-                # ret_data = f'''{{
-                #         "command": "LOGIN",
-                #         "response": "OK",
-                #         "contents": {{
-                #             "uuid": "{user_uuid}"
-                #           }}
-                #         }}'''
                 ret_data = '''{
                     "command": "LOGIN",
                     "response": "OK",
@@ -91,9 +89,71 @@ class NetworkController(QObject):
             ret_data_json = json.dumps(data_json)
             self.network_manager.send_tcp_data(ret_data_json.encode(), client_socket)
             pass
-        elif payload['command'] == 'INVITE': # call -> callbroker 로 이벤트 전달
+        elif payload['command'] == 'INVITE':  # call -> callbroker 로 이벤트 전달
+            # 수신자 online 여부 체크 ( directory 내에 있으면 됨 )
+            ret_dst, dst_user = directory_service.search_by_email(payload['contents']['target'])
+            ret_snd, snd_user = directory_service.search_by_uuid(payload['contents']['uuid'])
+            # 수신자 busy 여부 체크 ( User 객체의 call_state 를 확인 )
+            if ret_dst != False and (dst_user.get_state() == CallState.IDLE):
+                # CallRoom 을 생성하고 call broker 에 방을 추가한다
+                room = CallRoom(snd_user, dst_user, self.network_manager)
+                # call_id 는 call broker 에서 받아온다
+                room.set_call_id(str(callbroker_service.make_call_id()))
+                # state 를 IDLE 에서 INVITE로 변경
+                room.set_state(CallState.INVITE)
 
-            pass
+                callbroker_service.append(room)
+                callbroker_service.print_info()
+                # ret_data = f'''{{
+                #     "command": "CANCEL",
+                #     "response": "NOT AVAILABLE",
+                #     "contents": {{
+                #         "uuid": "%s"
+                #       }}
+                #     }}''' % snd_user.uuid
+                # data_json = json.loads(ret_data)
+                # ret_data_json = json.dumps(data_json)
+                # self.network_manager.send_tcp_data(ret_data_json.encode(), dst_user.socket_info)
+            else:
+                # sender 에게 CANCEL 보낸다( NOT AVAILABLE )
+                ret_data = ''
+                if ret_dst == False:
+                    ret_data = f'''{{
+                        "command": "CANCEL",
+                        "response": "NOT AVAILABLE",
+                        "contents": {{
+                            "uuid": "%s"
+                          }}
+                        }}''' % snd_user.uuid
+                elif dst_user.get_state() != CallState.IDLE:
+                    ret_data = f'''{{
+                        "command": "CANCEL",
+                        "response": "BUSY",
+                        "contents": {{
+                            "uuid": "%s"
+                          }}
+                        }}''' % snd_user.uuid
+                data_json = json.loads(ret_data)
+                ret_data_json = json.dumps(data_json)
+                self.network_manager.send_tcp_data(ret_data_json.encode(), snd_user.socket_info)
+                return
+
+        elif payload['command'] == 'ACCEPT':
+            # call id 로부터 call room 을 찾는다.
+            ret, room = callbroker_service.search_by_callid(payload['contents']['callid'])
+            room.set_state(CallState.ACCEPT)
+
+        elif payload['command'] == 'BYE':
+            ret, room = callbroker_service.search_by_callid(payload['contents']['callid'])
+            # 해당 room 의 call 상태가 CALLING 일때만 가능하도록 예외처리 필요
+            room.set_state(CallState.BYE)
+            callbroker_service.remove(room)
+
+        elif payload['command'] == 'CANCEL':
+            ret, room = callbroker_service.search_by_callid(payload['contents']['callid'])
+            # 해당 room 의 call 상태가 INVITE 일때만 가능하도록 예외처리 필요
+            room.set_state(CallState.CANCEL)
+            callbroker_service.remove(room)
 
     def handle_udp_data(self, data, address):
         # UDP 데이터 수신 이벤트 처리 로직
