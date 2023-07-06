@@ -509,6 +509,7 @@
     <ClInclude Include="Multimedia_Manager.h" />
     <ClInclude Include="MultiMediaReceiver.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="SocketCommunication.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="WindowsApp.h" />
   </ItemGroup>
@@ -517,6 +518,7 @@
     <ClCompile Include="MultiMediaSender.cpp" />
     <ClCompile Include="Multimedia_Manager.cpp" />
     <ClCompile Include="MutiMediaReceiver.cpp" />
+    <ClCompile Include="SocketCommunication.cpp" />
     <ClCompile Include="WindowsApp.cpp" />
   </ItemGroup>
   <ItemGroup>

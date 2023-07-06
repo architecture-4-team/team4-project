@@ -18,6 +18,7 @@
 #include "MultimediaInterface.h"
 #include "global_setting.h"
 #include "ContactManager.h"
+#include "SocketCommunication.h"
 
 #define MAX_LOADSTRING 100
 
@@ -54,6 +55,7 @@ HWND videoWindow0; // Video 출력용 윈도우 핸들
 HWND videoWindow1; // Video 출력용 윈도우 핸들
 
 HWND hLoginDialog;
+SocketCommunication* socketCommunication = new SocketCommunication(std::string("127.0.0.1"), 10000);
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -73,8 +75,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // TODO: 여기에 코드를 입력합니다.
 
     // init socket communication
-    initSocketCommunication();
-
+    //initSocketCommunication();
+    socketCommunication->Start();
+  
     SetStdOutToNewConsole();
 
     // Initialize GStreamer
@@ -253,9 +256,13 @@ INT_PTR CALLBACK LoginDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM 
                 else
                 {
                     const char* message = "hello???";
-                    char * result = SendAndReceive(message);
+                    //char * result = SendAndReceive(message);
+
+                    socketCommunication->SendMessageW(std::string("hello?"));
+                    std::string response = socketCommunication->ReceiveResponse();
+
                     g_print("messge is: ");
-                    g_print(result);
+                    g_print(response.c_str());
                     g_print("\n");
 
                     MessageBox(hwndDlg, L"Invalid username or password! Try agin.", L"Login", MB_OK | MB_ICONERROR);
