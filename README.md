@@ -1,4 +1,4 @@
-# User Namagement Server
+# User Mamagement Server
 ## Getting Started
 1. Download source
 2. Set virtual environment
