@@ -6,6 +6,7 @@ import pytz
 
 from model.user import UserExt
 from services.storage.istorage_service import IStorageService
+from services.storage.mysql_service import MySQLService
 
 
 class StorageManager:
@@ -18,8 +19,14 @@ class StorageManager:
     def disconnect(self):
         self.storage_service.disconnect()
 
-    def get_user(self, uuid) -> Optional[UserExt]:
+    def get_user_by_uuid(self, uuid) -> Optional[UserExt]:
         rows = self.storage_service.read_records("user_table", {"uuid": uuid})
+        if len(rows) > 0:
+            return UserExt(**rows[0])
+        return None
+
+    def get_user_by_email(self, email) -> Optional[UserExt]:
+        rows = self.storage_service.read_records("user_table", {"email": email})
         if len(rows) > 0:
             return UserExt(**rows[0])
         return None
@@ -30,3 +37,8 @@ class StorageManager:
 
     def update_user_info(self, uuid, key, value):
         self.storage_service.update_records("user_table", {"uuid": uuid}, {key: value})
+
+
+dbcon = MySQLService()
+storage_manager = StorageManager(dbcon)
+storage_manager.connect()

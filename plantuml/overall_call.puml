@@ -1,0 +1,46 @@
+@startuml
+
+autonumber
+participant "User App 1" as ua1
+participant "Server Application" as sa
+participant "User App 2" as ua2
+
+ua1 -> sa : INVITE
+alt user app 2 is offline
+    sa -> ua1 : CANCEL
+    note over ua1 : call end
+else user app 2 is busy
+    autonumber 2
+    sa -> ua1 : CANCEL
+    note over ua1 : call end
+else user app 2 is online and available
+    autonumber 2
+    sa -> ua2 : INVITE
+end
+
+alt accept a call
+    ua2 -> sa : ACCEPT
+    sa -> ua1 : ACCEPT
+else reject a call
+    autonumber 3
+    ua2 -> sa : CANCEL
+    sa -> ua1 : CANCEL
+    note over ua1 : call end
+end
+
+== a phone call in progress ==
+
+alt user app 1 attempts to end this call
+    ua1 -> sa : BYE
+    sa -> ua1 : BYE
+    sa -> ua2 : BYE
+    note over ua1 : call end
+else user app 2 attempts to end this call
+    autonumber 5
+    ua2 -> sa : BYE
+    sa -> ua2 : BYE
+    sa -> ua1 : BYE
+    note over ua1 : call end
+end
+
+@enduml
