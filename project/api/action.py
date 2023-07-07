@@ -1,3 +1,4 @@
+import shortuuid
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from rest_framework.exceptions import ParseError, AuthenticationFailed
 from rest_framework.renderers import JSONRenderer
@@ -100,3 +101,36 @@ class LogOut(APIView):
             return Response(content)
         except ObjectDoesNotExist:
             raise AuthenticationFailed("Authorization failed")
+
+
+class Reset(APIView):
+
+    def put(self, request):
+        if not request.data:
+            raise ParseError("No payload")
+
+        # reset password
+        email = request.data.get("email")
+        answer1 = request.data.get("question1")
+        answer2 = request.data.get("question2")
+        answer3 = request.data.get("question3")
+
+        try:
+            user = User.objects.get(email=email, question1=answer1, question2=answer2, question3=answer3)
+            user.pwd = shortuuid.uuid()
+            user.save()
+            content = {
+                'result': 'ok',
+                'contents': {
+                    "response": user.pwd
+                }
+            }
+            return Response(content)
+        except ObjectDoesNotExist:
+            content = {
+                'result': 'nok',
+                'contents': {
+                    "response": "user not found"
+                }
+            }
+            return Response(content)

@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.urls import path
 
-from project.api.action import Login, LogOut, Register
+from project.api.action import Login, LogOut, Register, Reset
 from project.api.contact import ContactDetail
 from project.api.user import UserList, UserDetail
 from project.views import LoginView, ContactsView, RegisterView, UpdateView, ResetView
@@ -26,8 +26,7 @@ urlpatterns = [
     path('api/register', Register.as_view()),
     path('api/login', Login.as_view()),
     path('api/logout', LogOut.as_view()),
-    path('api/update', Login.as_view()),
-    path('api/reset', Login.as_view()),
+    path('api/reset', Reset.as_view()),
 
     # api/user
     path('api/user', UserList.as_view()),

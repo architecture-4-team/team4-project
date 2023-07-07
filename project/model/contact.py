@@ -6,8 +6,8 @@ from project.model.user import User
 
 class Contact(models.Model):
     cid = models.PositiveIntegerField(primary_key=True)
-    owner_uid = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owner')
-    favorite_uid = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite')
+    owner_uid = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owner', db_column="owner_uid")
+    favorite_uid = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite', db_column="favorite_uid")
     nickname = models.CharField(max_length=32)
     created_at = models.DateTimeField
     updated_at = models.DateTimeField
