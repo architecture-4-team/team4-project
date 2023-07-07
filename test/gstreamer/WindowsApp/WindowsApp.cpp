@@ -9,9 +9,10 @@
 #include <stdio.h>
 #include <gst/gst.h>
 
-#include "MultimediaSender.h"
+//#include "MultimediaSender.h"
 #include "MultimediaReceiver.h"
 #include "MultimediaInterface.h"
+#include "MultimediaManager.h"
 #include "global_setting.h"
 
 #define MAX_LOADSTRING 100
@@ -22,10 +23,16 @@ RECT getWinSize(HWND hWnd);
 static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 DWORD WINAPI RunSENDER(LPVOID lpParam);
 DWORD WINAPI RunRECEIVER(LPVOID lpParam);
+DWORD WINAPI RunRECEIVER2(LPVOID lpParam);
+DWORD WINAPI RunRECEIVER3(LPVOID lpParam);
 static void SetStdOutToNewConsole(void);
 
 static void stopSENDER();
 static void stopRECEIVER();
+static void stopRECEIVER2();
+static void stopRECEIVER3();
+static void acceptAll();
+static void makeCall();
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
@@ -38,12 +45,18 @@ HWND hWndMain;
 
 HANDLE hSenderThread;
 HANDLE hReceiverThread;
+HANDLE hReceiver2Thread;
+HANDLE hReceiver3Thread;
 
-MultimediaInterface& mSender = MultimediaSender::GetInstance();
+MultimediaManager& mManager = MultimediaManager::GetInstance();
 MultimediaInterface* mReceiver = new MultimediaReceiver();
+MultimediaInterface* mReceiver2 = new MultimediaReceiver();
+MultimediaInterface* mReceiver3 = new MultimediaReceiver();
 
 HWND videoWindow0; // Video 출력용 윈도우 핸들
 HWND videoWindow1; // Video 출력용 윈도우 핸들
+HWND videoWindow2; // Video 출력용 윈도우 핸들
+HWND videoWindow3; // Video 출력용 윈도우 핸들
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -93,7 +106,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 }
 
 
-
 //
 //  함수: MyRegisterClass()
 //
@@ -134,8 +146,20 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
-   HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+   HWND hWnd = CreateWindowEx(
+       0,
+       szWindowClass,  // 클래스 이름
+       szTitle,        // 윈도우 타이틀
+       WS_OVERLAPPEDWINDOW,  // 윈도우 스타일
+       CW_USEDEFAULT,  // x좌표
+       CW_USEDEFAULT,  // y좌표
+       1000,            // width
+       700,            // height
+       nullptr,
+       nullptr,
+       hInstance,
+       nullptr
+   );
 
    if (!hWnd)
    {
@@ -199,9 +223,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 // 쓰레드 생성
                 stopRECEIVER();
                 break;
+
+            case IDC_START_RECEIVER2:
+                // 쓰레드 생성
+                hReceiver2Thread = CreateThread(NULL, 0, RunRECEIVER2, NULL, 0, NULL);
+                if (hReceiver2Thread)
+                {
+                    CloseHandle(hReceiver2Thread);  // 쓰레드 핸들 닫기
+                }
+                break;
+            case IDC_STOP_RECEIVER2:
+                // 쓰레드 생성
+                stopRECEIVER2();
+                break;
+
+            case IDC_START_RECEIVER3:
+                // 쓰레드 생성
+                hReceiver3Thread = CreateThread(NULL, 0, RunRECEIVER3, NULL, 0, NULL);
+                if (hReceiver3Thread)
+                {
+                    CloseHandle(hReceiver3Thread);  // 쓰레드 핸들 닫기
+                }
+                break;
+            case IDC_STOP_RECEIVER3:
+                // 쓰레드 생성
+                stopRECEIVER3();
+                break;
+            case IDC_ACCEPT_ALL:
+                // 쓰레드 생성
+                stopRECEIVER();
+                break;
+
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
+
         }
         break;
 
@@ -225,10 +281,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         FreeConsole();
         fclose(pCout);
         pCout = NULL;
-
-        // MultimediaSender 객체 삭제
-        mSender.stop();
-        mSender.cleanup();
 
         // MultimediaReceiver 객체 삭제
         mReceiver->stop();
@@ -266,29 +318,131 @@ typedef enum
 {
 	_BUTNUM_SEND_START,
 	_BUTNUM_SEND_STOP,
-	_BUTNUM_RECV_START,
-	_BUTNUM_RECV_STOP,
+	_BUTNUM_RECV1_START,
+	_BUTNUM_RECV1_STOP,
+    _BUTNUM_RECV2_START,
+    _BUTNUM_RECV2_STOP,
+    _BUTNUM_RECV3_START,
+    _BUTNUM_RECV3_STOP,
+    _BUTNUM_RECV_ACCEPT_ALL,
 	_BUTNUM_MAX
 }E_BUT_NUM;
 
+typedef enum
+{
+    _VIDEO_0,
+    _VIDEO_1,
+    _VIDEO_2,
+    _VIDEO_3,
+    _VIDEO_VIEW_MAX
+}E_VIDEO_NUM;
+
 static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	const unsigned int buttonWidth	= 120;
-	const unsigned int buttonHeight	= 30;
-	const unsigned int widthMargin	= 10;
-	const unsigned int heightMargin	= 20;
+    const unsigned int videoWidth = 320;
+    const unsigned int videoHeight = 240;
+    const unsigned int videoWidthMargin = 20;
+    const unsigned int videoHeightMargin = 80;
 
-    unsigned int posY[_BUTNUM_MAX] = {10,10,10,10};
-    unsigned int posX[_BUTNUM_MAX] = {10,10,10,10};
+    unsigned int videoPosX[_VIDEO_VIEW_MAX] = { 20, };
+    unsigned int videoPosY[_VIDEO_VIEW_MAX] = { 20, };
 
-	posX[_BUTNUM_SEND_STOP]		= posX[_BUTNUM_SEND_START] + buttonWidth + widthMargin;
-	posX[_BUTNUM_RECV_START]	= posX[_BUTNUM_SEND_STOP] + buttonWidth + widthMargin;
-	posX[_BUTNUM_RECV_STOP]		= posX[_BUTNUM_RECV_START] + buttonWidth + widthMargin;
+    videoPosX[_VIDEO_1] = videoPosX[_VIDEO_0] + videoWidth + videoWidthMargin;
+    videoPosY[_VIDEO_1] = videoPosY[_VIDEO_0];
+
+
+    videoPosX[_VIDEO_2] = videoPosX[_VIDEO_0];
+    videoPosY[_VIDEO_2] = videoPosY[_VIDEO_0] + videoHeight + videoHeightMargin;
+
+
+    videoPosX[_VIDEO_3] = videoPosX[_VIDEO_1];
+    videoPosY[_VIDEO_3] = videoPosY[_VIDEO_2];
+
+
+    // 비디오 윈도우 생성
+    videoWindow0 = CreateWindowW(
+        L"STATIC",
+        L"Video Window",
+        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        videoPosX[_VIDEO_0], videoPosY[_VIDEO_0], videoWidth, videoHeight,
+        hWnd, nullptr, hInst, nullptr
+    );
+    // 비디오 출력을 위해 윈도우 스타일을 설정합니다.
+    SetWindowLongPtr(videoWindow0, GWL_STYLE, GetWindowLongPtr(videoWindow0, GWL_STYLE) | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
+    SetWindowPos(videoWindow0, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
+
+    // 비디오 윈도우 생성
+    videoWindow1 = CreateWindowW(
+        L"STATIC",
+        L"Video Window1",
+        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        videoPosX[_VIDEO_1], videoPosY[_VIDEO_1], videoWidth, videoHeight,
+        hWnd, nullptr, hInst, nullptr
+    );
+    // 비디오 출력을 위해 윈도우 스타일을 설정합니다.
+    SetWindowLongPtr(videoWindow1, GWL_STYLE, GetWindowLongPtr(videoWindow1, GWL_STYLE) | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
+    SetWindowPos(videoWindow1, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
+
+    // 비디오 윈도우 생성
+    videoWindow2 = CreateWindowW(
+        L"STATIC",
+        L"Video Window2",
+        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        videoPosX[_VIDEO_2], videoPosY[_VIDEO_2], videoWidth, videoHeight,
+        hWnd, nullptr, hInst, nullptr
+    );
+    // 비디오 출력을 위해 윈도우 스타일을 설정합니다.
+    SetWindowLongPtr(videoWindow2, GWL_STYLE, GetWindowLongPtr(videoWindow2, GWL_STYLE) | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
+    SetWindowPos(videoWindow2, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
+
+    // 비디오 윈도우 생성
+    videoWindow3 = CreateWindowW(
+        L"STATIC",
+        L"Video Window3",
+        WS_CHILD | WS_VISIBLE | WS_BORDER,
+        videoPosX[_VIDEO_3], videoPosY[_VIDEO_3], videoWidth, videoHeight,
+        hWnd, nullptr, hInst, nullptr
+    );
+    // 비디오 출력을 위해 윈도우 스타일을 설정합니다.
+    SetWindowLongPtr(videoWindow3, GWL_STYLE, GetWindowLongPtr(videoWindow3, GWL_STYLE) | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
+    SetWindowPos(videoWindow3, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
+
+    const unsigned int buttonWidth = 100;
+    const unsigned int buttonHeight = 30;
+    const unsigned int widthMargin = 20;
+    const unsigned int heightMargin = 20;
+
+    unsigned int posX[_BUTNUM_MAX] = { 70, };
+    unsigned int posY[_BUTNUM_MAX] = { 270, };
+
+    posX[_BUTNUM_SEND_START] = videoPosX[_VIDEO_0] + (videoWidth / 4) - (buttonWidth / 3);
+    posY[_BUTNUM_SEND_START] = videoPosY[_VIDEO_0] + videoHeight + 10;
+    posX[_BUTNUM_SEND_STOP] = posX[_BUTNUM_SEND_START] + buttonWidth + widthMargin;
+    posY[_BUTNUM_SEND_STOP] = posY[_BUTNUM_SEND_START];
+
+    posX[_BUTNUM_RECV1_START] = videoPosX[_VIDEO_1] + (videoWidth / 4) - (buttonWidth / 3);
+    posY[_BUTNUM_RECV1_START] = videoPosY[_VIDEO_1] + videoHeight + 10;
+    posX[_BUTNUM_RECV1_STOP] = posX[_BUTNUM_RECV1_START] + buttonWidth + widthMargin;
+    posY[_BUTNUM_RECV1_STOP] = posY[_BUTNUM_RECV1_START];
+
+    posX[_BUTNUM_RECV2_START] = videoPosX[_VIDEO_2] + (videoWidth / 4) - (buttonWidth / 3);
+    posY[_BUTNUM_RECV2_START] = videoPosY[_VIDEO_2] + videoHeight + 10;
+    posX[_BUTNUM_RECV2_STOP] = posX[_BUTNUM_RECV2_START] + buttonWidth + widthMargin;
+    posY[_BUTNUM_RECV2_STOP] = posY[_BUTNUM_RECV2_START];
+
+    posX[_BUTNUM_RECV3_START] = videoPosX[_VIDEO_3] + (videoWidth / 4) - (buttonWidth / 3);
+    posY[_BUTNUM_RECV3_START] = videoPosY[_VIDEO_3] + videoHeight + 10;
+    posX[_BUTNUM_RECV3_STOP] = posX[_BUTNUM_RECV3_START] + buttonWidth + widthMargin;
+    posY[_BUTNUM_RECV3_STOP] = posY[_BUTNUM_RECV3_START];
+
+    posX[_BUTNUM_RECV_ACCEPT_ALL] = 700;
+    posY[_BUTNUM_RECV_ACCEPT_ALL] = 10;
+
 
     // 버튼 생성
     CreateWindow(
         _T("button"),
-        _T("Start Sender"),
+        _T("Start"),
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
         posX[_BUTNUM_SEND_START], posY[_BUTNUM_SEND_START], buttonWidth, buttonHeight,
         hWnd,
@@ -300,7 +454,7 @@ static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     // 버튼 생성
     CreateWindow(
         _T("button"),
-        _T("Stop Sender"),
+        _T("Stop"),
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
         posX[_BUTNUM_SEND_STOP], posY[_BUTNUM_SEND_STOP], buttonWidth, buttonHeight,
         hWnd,
@@ -311,9 +465,9 @@ static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     CreateWindow(
         _T("button"),
-        _T("Start Receiver"),
+        _T("Start R1"),
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        posX[_BUTNUM_RECV_START], posY[_BUTNUM_RECV_START], buttonWidth, buttonHeight,
+        posX[_BUTNUM_RECV1_START], posY[_BUTNUM_RECV1_START], buttonWidth, buttonHeight,
         hWnd,
         (HMENU)IDC_START_RECEIVER,
         ((LPCREATESTRUCT)lParam)->hInstance,
@@ -322,38 +476,69 @@ static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     CreateWindow(
         _T("button"),
-        _T("Stop Receiver"),
+        _T("Stop R1"),
         WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-        posX[_BUTNUM_RECV_STOP], posY[_BUTNUM_RECV_STOP], buttonWidth, buttonHeight,
+        posX[_BUTNUM_RECV1_STOP], posY[_BUTNUM_RECV1_STOP], buttonWidth, buttonHeight,
         hWnd,
         (HMENU)IDC_STOP_RECEIVER,
         ((LPCREATESTRUCT)lParam)->hInstance,
         NULL
     );
 
-    // 비디오 윈도우 생성
-    videoWindow0 = CreateWindowW(
-        L"STATIC",
-        L"Video Window",
-        WS_CHILD | WS_VISIBLE | WS_BORDER,
-        600, 0, 320, 240,
-        hWnd, nullptr, hInst, nullptr
+    CreateWindow(
+        _T("button"),
+        _T("Start R2"),
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        posX[_BUTNUM_RECV2_START], posY[_BUTNUM_RECV2_START], buttonWidth, buttonHeight,
+        hWnd,
+        (HMENU)IDC_START_RECEIVER2,
+        ((LPCREATESTRUCT)lParam)->hInstance,
+        NULL
     );
-    // 비디오 출력을 위해 윈도우 스타일을 설정합니다.
-    SetWindowLongPtr(videoWindow0, GWL_STYLE, GetWindowLongPtr(videoWindow0, GWL_STYLE) | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
-    SetWindowPos(videoWindow0, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
 
-    // 비디오 윈도우 생성
-    videoWindow1 = CreateWindowW(
-        L"STATIC",
-        L"Video Window",
-        WS_CHILD | WS_VISIBLE | WS_BORDER,
-        600, 300, 320, 240,
-        hWnd, nullptr, hInst, nullptr
+    CreateWindow(
+        _T("button"),
+        _T("Stop R2"),
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        posX[_BUTNUM_RECV2_STOP], posY[_BUTNUM_RECV2_STOP], buttonWidth, buttonHeight,
+        hWnd,
+        (HMENU)IDC_STOP_RECEIVER2,
+        ((LPCREATESTRUCT)lParam)->hInstance,
+        NULL
     );
-    // 비디오 출력을 위해 윈도우 스타일을 설정합니다.
-    SetWindowLongPtr(videoWindow1, GWL_STYLE, GetWindowLongPtr(videoWindow1, GWL_STYLE) | WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
-    SetWindowPos(videoWindow1, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
+
+    CreateWindow(
+        _T("button"),
+        _T("Start R3"),
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        posX[_BUTNUM_RECV3_START], posY[_BUTNUM_RECV3_START], buttonWidth, buttonHeight,
+        hWnd,
+        (HMENU)IDC_START_RECEIVER3,
+        ((LPCREATESTRUCT)lParam)->hInstance,
+        NULL
+    );
+
+    CreateWindow(
+        _T("button"),
+        _T("Stop R3"),
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        posX[_BUTNUM_RECV3_STOP], posY[_BUTNUM_RECV3_STOP], buttonWidth, buttonHeight,
+        hWnd,
+        (HMENU)IDC_STOP_RECEIVER3,
+        ((LPCREATESTRUCT)lParam)->hInstance,
+        NULL
+    );
+
+    CreateWindow(
+        _T("button"),
+        _T("AcceptAll"),
+        WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
+        posX[_BUTNUM_RECV_ACCEPT_ALL], posY[_BUTNUM_RECV_ACCEPT_ALL], buttonWidth, buttonHeight,
+        hWnd,
+        (HMENU)IDC_ACCEPT_ALL,
+        ((LPCREATESTRUCT)lParam)->hInstance,
+        NULL
+    );
 
     return 1;
 }
@@ -385,38 +570,9 @@ DWORD WINAPI RunSENDER(LPVOID lpParam)
     //sender();
     HWND hWnd = reinterpret_cast<HWND>(lpParam);
 
-    // Initialize sender pipelines
-    if (!mSender.initialize())
-    {
-        std::cerr << "Failed to initialize sender pipelines." << std::endl;
-        return 1;
-    }
-
-    // Set video resolution
-	dynamic_cast<MultimediaSender&>(mSender).setVideoResolution();
-
-
-    // Set receiver IP and port
-    dynamic_cast<MultimediaSender&>(mSender).setReceiverIP();
-    dynamic_cast<MultimediaSender&>(mSender).setPort(5001,5002);
-
-    // Set camera index (if necessary)
-    dynamic_cast<MultimediaSender&>(mSender).setCameraIndex(0);
-
-    // Set video flip method (if necessary)
-    dynamic_cast<MultimediaSender&>(mSender).setVideoFlipMethod(4); // Horizontal flip
-
-    // Set video encoding tune (if necessary)
-	dynamic_cast<MultimediaSender&>(mSender).setVideoEncTune(); 
-	dynamic_cast<MultimediaSender&>(mSender).setVideoEncBitRate();
-
-    // Set audio encoding type (if necessary)
-    dynamic_cast<MultimediaSender&>(mSender).setAudioOpusencAudioType(2051); // Restricted low delay
-
-    mSender.setWindow(videoWindow0);
-
-    // Start sender pipelines
-    mSender.start();
+    mManager.initialize(videoWindow0);
+    
+    mManager.makeCall();
 
     WaitForSingleObject(hSenderThread, INFINITE);
     CloseHandle(hSenderThread);
@@ -438,9 +594,9 @@ DWORD WINAPI RunRECEIVER(LPVOID lpParam)
         std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
         return -1;
     }
-    mReceiver->setPort(5001, 5002);
+    mReceiver->setPort(10001, 10002);
 
-    dynamic_cast<MultimediaReceiver*>(mReceiver)->setJitterBuffer(200);
+    dynamic_cast<MultimediaReceiver*>(mReceiver)->setJitterBuffer(50);
 
     dynamic_cast<MultimediaReceiver*>(mReceiver)->setRTP();
 
@@ -454,6 +610,66 @@ DWORD WINAPI RunRECEIVER(LPVOID lpParam)
     return 0;
 }
 
+// 쓰레드 함수
+DWORD WINAPI RunRECEIVER2(LPVOID lpParam)
+{
+    // 쓰레드에서 실행할 로직을 작성합니다.
+    // 예: 버튼 클릭 이벤트에 대한 처리 등
+    //MessageBox(NULL, (LPCWSTR)"Thread is running!", (LPCWSTR)"Thread", MB_OK);
+    //receiver();
+    // Close Thread
+
+    if (!mReceiver2->initialize())
+    {
+        std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
+        return -1;
+    }
+    mReceiver2->setPort(10001, 10002);
+
+    dynamic_cast<MultimediaReceiver*>(mReceiver2)->setJitterBuffer(50);
+
+    dynamic_cast<MultimediaReceiver*>(mReceiver2)->setRTP();
+
+    mReceiver2->setWindow(videoWindow2);
+
+    mReceiver2->start();
+
+    WaitForSingleObject(hReceiver2Thread, INFINITE);
+    CloseHandle(hReceiver2Thread);
+    hReceiver2Thread = INVALID_HANDLE_VALUE;
+    return 0;
+}
+
+// 쓰레드 함수
+DWORD WINAPI RunRECEIVER3(LPVOID lpParam)
+{
+    // 쓰레드에서 실행할 로직을 작성합니다.
+    // 예: 버튼 클릭 이벤트에 대한 처리 등
+    //MessageBox(NULL, (LPCWSTR)"Thread is running!", (LPCWSTR)"Thread", MB_OK);
+    //receiver();
+    // Close Thread
+
+    if (!mReceiver3->initialize())
+    {
+        std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
+        return -1;
+    }
+    mReceiver3->setPort(10001, 10002);
+
+    dynamic_cast<MultimediaReceiver*>(mReceiver3)->setJitterBuffer(50);
+
+    dynamic_cast<MultimediaReceiver*>(mReceiver3)->setRTP();
+
+    mReceiver3->setWindow(videoWindow3);
+
+    mReceiver3->start();
+
+    WaitForSingleObject(hReceiver3Thread, INFINITE);
+    CloseHandle(hReceiver3Thread);
+    hReceiver3Thread = INVALID_HANDLE_VALUE;
+    return 0;
+}
+
 static void SetStdOutToNewConsole(void)
 {
     // Allocate a console for this app
@@ -464,7 +680,7 @@ static void SetStdOutToNewConsole(void)
 
 static void stopSENDER() {
     // Stop sender pipelines
-    mSender.stop();
+    mManager.pauseCall();
 }
 
 static void stopRECEIVER() {
@@ -472,4 +688,18 @@ static void stopRECEIVER() {
     mReceiver->stop();
 }
 
+static void acceptAll() {
+    // Stop sender pipelines
+    mReceiver->stop();
+}
+
+static void stopRECEIVER2() {
+    // Stop sender pipelines
+    mReceiver2->stop();
+}
+
+static void stopRECEIVER3() {
+    // Stop sender pipelines
+    mReceiver3->stop();
+}
 

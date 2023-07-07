@@ -18,6 +18,10 @@ public:
     void setJitterBuffer(int latency);
     void setRTP();
     void setWindow(void* hVideo);
+
+    void setId(int id) { this->id = id; };
+    int getId() { return id; };
+    int getTotalReceiver() { return receieverNumbers; };
 private:
     // Pipeline
     GstElement* receiverVideoPipeline;
@@ -42,10 +46,9 @@ private:
     GstBus* receiverAudioBus;
 
     GMainLoop* receiverLoop;
-};
-static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, gpointer data);
-static gboolean handle_receiver_audio_bus_message(GstBus* bus, GstMessage* msg, gpointer data);
 
-static GstPadProbeReturn probe_callback(GstPad* pad, GstPadProbeInfo* info, gpointer user_data);
+    int id; // °´Ã¼ÀÇ id
+    static int receieverNumbers;
+};
 
 #endif  // MULTIMEDIARECEIVER_H

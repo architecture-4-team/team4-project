@@ -101,6 +101,8 @@ bool MultimediaSender::initialize()
     gst_bus_add_watch(senderVideoBus, (GstBusFunc)handle_sender_video_bus_message, this);
     gst_bus_add_watch(senderAudioBus, (GstBusFunc)handle_sender_audio_bus_message, this);
 
+    initMultimediaSender = TRUE;
+
     return true;
 }
 
@@ -166,10 +168,10 @@ void MultimediaSender::start()
     if (senderAudioPipeline)
         gst_element_set_state(senderAudioPipeline, GST_STATE_PLAYING);
 
-    // Create a GMainLoop to handle events
-    mainLoop = g_main_loop_new(nullptr, FALSE);
-
-	initMultimediaSender = TRUE;
+    if (!mainLoop) {
+        // Create a GMainLoop to handle events
+        mainLoop = g_main_loop_new(nullptr, FALSE);
+    }
 
     // Run the main loop
     g_main_loop_run(mainLoop);

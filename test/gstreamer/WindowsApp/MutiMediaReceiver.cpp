@@ -2,6 +2,14 @@
 #include <gst/gst.h>
 #include <gst/video/videooverlay.h>
 
+
+static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, gpointer data);
+static gboolean handle_receiver_audio_bus_message(GstBus* bus, GstMessage* msg, gpointer data);
+
+static GstPadProbeReturn probe_callback(GstPad* pad, GstPadProbeInfo* info, gpointer user_data);
+
+int MultimediaReceiver::receieverNumbers = 0;
+
 MultimediaReceiver::MultimediaReceiver()
     : receiverVideoPipeline(nullptr), receiverAudioPipeline(nullptr),
     videoSrc(nullptr), videoCapsfilter(nullptr),
@@ -11,6 +19,8 @@ MultimediaReceiver::MultimediaReceiver()
     audioConv(nullptr), audioSink(nullptr), receiverVideoBus(nullptr),
     receiverLoop(nullptr)
 {
+    receieverNumbers += 1;
+
     // Initialize GStreamer
     gst_init(nullptr, nullptr);
 }
@@ -79,6 +89,11 @@ bool MultimediaReceiver::initialize()
     // Get the sink pad of the sink element
     GstPad* pad = gst_element_get_static_pad(videoCapsfilter, "sink");
     gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)probe_callback, NULL, NULL);
+
+
+    /* ToDo : shall be discussed */
+    this->setJitterBuffer(50);
+    this->setRTP();
 
     return true;
 }
