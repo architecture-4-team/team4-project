@@ -4,10 +4,10 @@ from PyQt5.QtWidgets import QApplication
 from view.main_window import MainWindow
 from services.network_manager import NetworkManager
 from controller.network_controller import NetworkController
-from services.storage_manager import StorageManager
-from services.storage.istorage_service import IStorageService
-from services.storage.mysql_service import MySQLService
-from model.login import Login
+#from services.storage_manager import StorageManager
+#from services.storage.istorage_service import IStorageService
+#from services.storage.mysql_service import MySQLService
+#from model.login import Login
 
 TCP_PORTS = [10000]
 UDP_PORTS = [10001, 10002]
