@@ -17,22 +17,24 @@ MultimediaReceiver::MultimediaReceiver()
     videoSink(nullptr), audioSrc(nullptr), audioCapsfilter(nullptr),
     jitterbufferAudio(nullptr), audioDec(nullptr), audioDepay(nullptr),
     audioConv(nullptr), audioSink(nullptr), receiverVideoBus(nullptr),
-    receiverLoop(nullptr)
+    receiverLoop(nullptr), initialized(false)
 {
     receieverNumbers += 1;
 
-    // Initialize GStreamer
-    gst_init(nullptr, nullptr);
+    // Initialize GStreamer only one time at initialization of program
+    // gst_init(nullptr, nullptr);
 }
 
 MultimediaReceiver::~MultimediaReceiver()
 {
     cleanup();
-    gst_deinit();
+    // gst_deinit(); - do not deinit for receiver object destruction
 }
 
 bool MultimediaReceiver::initialize()
 {
+    if (initialized) return true;
+
     // Create receiver video pipeline
     receiverVideoPipeline = gst_pipeline_new("receiverVideoPipeline");
 
@@ -95,11 +97,17 @@ bool MultimediaReceiver::initialize()
     this->setJitterBuffer(50);
     this->setRTP();
 
+    initialized = true;
+
     return true;
 }
 
 void MultimediaReceiver::cleanup()
 {
+    // Cleanup the main loop
+    g_main_loop_unref(receiverLoop);
+    receiverLoop = nullptr;
+
     if (receiverVideoPipeline)
     {
         gst_element_set_state(receiverVideoPipeline, GST_STATE_NULL);
@@ -144,6 +152,8 @@ void MultimediaReceiver::cleanup()
         gst_object_unref(receiverAudioBus);
         receiverAudioBus = nullptr;
     }
+
+    initialized = false;
 }
 
 void MultimediaReceiver::start()
@@ -154,14 +164,13 @@ void MultimediaReceiver::start()
     if (receiverAudioPipeline)
         gst_element_set_state(receiverAudioPipeline, GST_STATE_PLAYING);
 
-    // Create a GMainLoop to handle events
-    receiverLoop = g_main_loop_new(nullptr, FALSE);
-
+    if (!receiverLoop) {
+        // Create a GMainLoop to handle events
+        receiverLoop = g_main_loop_new(nullptr, FALSE);
+    }
     // Run the main loop
     g_main_loop_run(receiverLoop);
 
-    // Cleanup the main loop
-    g_main_loop_unref(receiverLoop);
 }
 
 void MultimediaReceiver::stop()
@@ -180,6 +189,30 @@ void MultimediaReceiver::setPort(int videoPort, int audioPort)
 {
     g_object_set(G_OBJECT(videoSrc), "port", videoPort, nullptr);
     g_object_set(G_OBJECT(audioSrc), "port", audioPort, nullptr);
+}
+
+// 쓰레드 함수
+DWORD WINAPI MultimediaReceiver::threadCallback(LPVOID lpParam)
+{
+    // 쓰레드에서 실행할 로직을 작성합니다.
+    MultimediaReceiver* pReceiver = static_cast<MultimediaReceiver*>(lpParam);
+
+    pReceiver->start();
+
+    WaitForSingleObject(pReceiver->hThread, INFINITE);
+    CloseHandle(pReceiver->hThread);
+    pReceiver->hThread = INVALID_HANDLE_VALUE;
+    return 0;
+}
+
+bool MultimediaReceiver::runThread()
+{
+    hThread = CreateThread(NULL, 0, MultimediaReceiver::threadCallback, this, 0, NULL);
+    if (hThread)
+    {
+        CloseHandle(hThread);  // 쓰레드 핸들 닫기
+    }
+    return true;
 }
 
 void MultimediaReceiver::setJitterBuffer(int latency)

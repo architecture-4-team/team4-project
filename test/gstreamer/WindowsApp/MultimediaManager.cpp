@@ -1,6 +1,7 @@
 #include "multimediaManager.h"
 #include "MultimediaSender.h"
 #include "MultimediaReceiver.h"
+#include <gst/gst.h>
 
 std::mutex MultimediaManager::instanceMutex;
 
@@ -12,30 +13,42 @@ MultimediaManager& MultimediaManager::GetInstance() {
 }
 
 MultimediaManager::MultimediaManager() 
-    : mSender(MultimediaSender::GetInstance()), receiverList(0, nullptr)
+    : mSender(MultimediaSender::GetInstance())
 {
-
+    // Initialize GStreamer
+    gst_init(NULL, NULL);
 };
 
 MultimediaManager::~MultimediaManager() {
     mSender.stop();
     mSender.cleanup();
+
+    for (auto& pair : receiverMap) {
+        pair.second->stop();
+        pair.second->cleanup();
+        delete pair.second;  // Delete the object
+    }
+
+    gst_deinit();
 }
 
-void MultimediaManager::SenderInitialize(void* hVideo) {
+bool MultimediaManager::setupSender(void* hVideo, std::string ip, int videoPort, int audioPort) {
+
+    mSender = MultimediaSender::GetInstance();
+
     // Initialize sender pipelines
     if (!mSender.initialize())
     {
-//        std::cerr << "Failed to initialize sender pipelines." << std::endl;
-//        return 1;
+        std::cerr << "Failed to initialize sender pipelines." << std::endl;
+        return true;
     }
 
     // Set video resolution
     dynamic_cast<MultimediaSender&>(mSender).setVideoResolution();
 
-    // Set receiver IP and port
-    dynamic_cast<MultimediaSender&>(mSender).setReceiverIP();
-    dynamic_cast<MultimediaSender&>(mSender).setPort(10001, 10002);
+    // Set receiver IP and port - Todo : change to Server IP and Port
+    dynamic_cast<MultimediaSender&>(mSender).setReceiverIP(ip);
+    dynamic_cast<MultimediaSender&>(mSender).setPort(videoPort, audioPort);
 
     // Set camera index (if necessary)
     dynamic_cast<MultimediaSender&>(mSender).setCameraIndex(0);
@@ -51,63 +64,69 @@ void MultimediaManager::SenderInitialize(void* hVideo) {
     dynamic_cast<MultimediaSender&>(mSender).setAudioOpusencAudioType(2051); // Restricted low delay
 
     mSender.setWindow(hVideo);
-}
-
-bool MultimediaManager::initialize(void* hVideo) {
-
-    mSender = MultimediaSender::GetInstance();
-
-    SenderInitialize(hVideo);
 
     return true;
 }
 
-bool MultimediaManager::acceptCall(/* Callee 按眉 罐扁 */void* hVideo)
+bool MultimediaManager::setupReceiver(void* hVideo, int videoPort, int audioPort, int id)
 {
-    MultimediaReceiver* receiver = new MultimediaReceiver(); // MultimediaReceiver 按眉 积己
-    receiverList.push_back(receiver);
+    MultimediaReceiver* receiver;
+    if (!receiverMap[id])
+    {
+        receiver = new MultimediaReceiver(); // MultimediaReceiver 按眉 积己
+        receiverMap[id] = receiver;
+    }
+    else
+    {
+        receiver = static_cast<MultimediaReceiver*>(receiverMap[id]);
+    }
 
     if (!receiver->initialize())
     {
         std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
         return -1;
     }
-    receiver->setPort(10001, 10002);     // Set receive port
-
-    int id = receiver->getTotalReceiver();
     receiver->setId(id);
 
-    receiver->setWindow(hVideo);       // Set window handle to show window
-
-    return true;
-}
-
-bool MultimediaManager::acceptCall(/* Callee 按眉 罐扁 */void* hVideo, int videoPort, int audioPort)
-{
-    MultimediaReceiver* receiver = new MultimediaReceiver(); // MultimediaReceiver 按眉 积己
-    receiverList.push_back(receiver);
-
-    if (!receiver->initialize())
-    {
-        std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
-        return -1;
-    }
     receiver->setPort(videoPort, audioPort);     // Set receive port
-
-    int id = receiver->getTotalReceiver();
-    receiver->setId(id);
 
     receiver->setWindow(hVideo);       // Set window handle to show window
     
     return true;
 }
 
+bool MultimediaManager::acceptCall(/* Callee 按眉 罐扁 */void* hVideo)
+{
+
+}
+
 void MultimediaManager::makeCall()
 {
-    mSender.start();
-}
+    mSender.runThread();
+ }
 
 void MultimediaManager::pauseCall()
 {
     mSender.stop();
+}
+
+void MultimediaManager::endCall()
+{
+    mSender.stop();
+
+    for (auto& pair : receiverMap) {
+        pair.second->stop();
+        delete pair.second;  // Delete the object
+    }
+}
+
+// For debugging
+void MultimediaManager::pauseReceiver(int video)
+{
+    receiverMap[video]->stop();
+}
+
+void MultimediaManager::playReceiver(int video)
+{
+    receiverMap[video]->runThread();
 }

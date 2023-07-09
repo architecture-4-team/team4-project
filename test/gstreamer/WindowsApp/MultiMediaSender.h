@@ -4,6 +4,7 @@
 
 #include <mutex>
 #include <gst/gst.h>
+#include <Windows.h>
 #include "MultimediaInterface.h"
 
 class MultimediaSender : public MultimediaInterface
@@ -17,33 +18,34 @@ public:
         return instance;
     }
 
-	bool initMultimediaSender = false;
-	std::string receiverIp = "127.0.0.1"; 
-
-
     ~MultimediaSender();
 
     bool initialize();
     void cleanup();
     void start();
     void stop();
+    void setPort(int videoPort, int audioPort);
+    void setWindow(void* hVideo);
+    bool runThread();
 
     void setVideoResolution();
 	std::string getReceiverIP();
-    void setReceiverIP();
-    void setPort(int videoPort, int audioPort);
+    void setReceiverIP(std::string ip);
     void setCameraIndex(int index);
     void setVideoFlipMethod(int method);
 	void setVideoEncBitRate();
     void setVideoEncTune();
     void setAudioOpusencAudioType(int audioType);
-    void setWindow(void* hVideo);
+
 private:
     MultimediaSender();
     MultimediaSender(const MultimediaSender&) = delete;
     MultimediaSender& operator=(const MultimediaSender&) = delete;
 
     static std::mutex instanceMutex;  // 인스턴스 생성 동기화에 사용할 뮤텍스
+
+    bool initialized;
+    std::string receiverIp;
 
 	unsigned int sendVideoWidth		= 320;
 	unsigned int sendVideoHeight	= 240;
@@ -77,6 +79,9 @@ private:
     GstBus* senderAudioBus;
 
     GMainLoop* mainLoop;
+
+    HANDLE hThread; // Sender Thread
+    static DWORD WINAPI threadCallback(LPVOID lpParam);
 };
 
 #endif  // MULTIMEDIA_SENDER_H

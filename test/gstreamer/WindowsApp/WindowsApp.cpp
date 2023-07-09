@@ -7,7 +7,6 @@
 #include <Windows.h>
 #include <gst/gst.h>
 #include <stdio.h>
-#include <gst/gst.h>
 
 //#include "MultimediaSender.h"
 #include "MultimediaReceiver.h"
@@ -21,18 +20,16 @@
 LRESULT OnSize(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 RECT getWinSize(HWND hWnd);
 static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-DWORD WINAPI RunSENDER(LPVOID lpParam);
+
 DWORD WINAPI RunRECEIVER(LPVOID lpParam);
 DWORD WINAPI RunRECEIVER2(LPVOID lpParam);
 DWORD WINAPI RunRECEIVER3(LPVOID lpParam);
 static void SetStdOutToNewConsole(void);
 
-static void stopSENDER();
+
 static void stopRECEIVER();
 static void stopRECEIVER2();
 static void stopRECEIVER3();
-static void acceptAll();
-static void makeCall();
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
@@ -49,9 +46,9 @@ HANDLE hReceiver2Thread;
 HANDLE hReceiver3Thread;
 
 MultimediaManager& mManager = MultimediaManager::GetInstance();
-MultimediaInterface* mReceiver = new MultimediaReceiver();
-MultimediaInterface* mReceiver2 = new MultimediaReceiver();
-MultimediaInterface* mReceiver3 = new MultimediaReceiver();
+//MultimediaInterface* mReceiver = new MultimediaReceiver();
+//MultimediaInterface* mReceiver2 = new MultimediaReceiver();
+//MultimediaInterface* mReceiver3 = new MultimediaReceiver();
 
 HWND videoWindow0; // Video 출력용 윈도우 핸들
 HWND videoWindow1; // Video 출력용 윈도우 핸들
@@ -74,9 +71,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // TODO: 여기에 코드를 입력합니다.
     SetStdOutToNewConsole();
-
-    // Initialize GStreamer
-    gst_init(NULL, NULL);
 
     // 전역 문자열을 초기화합니다.
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -201,63 +195,45 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             case IDC_START_SENDER:
                 // 쓰레드 생성
-                hSenderThread = CreateThread(NULL, 0, RunSENDER, hWnd, 0, NULL);
-                if (hSenderThread)
-                {
-                    CloseHandle(hSenderThread);  // 쓰레드 핸들 닫기
-                }
+                mManager.setupSender(videoWindow0, "127.0.0.1", 10001, 10002); // init manager with my video view
+                // Server Ip has been set up at initialize
+                mManager.makeCall(); // Receiver is decided by server application, just send video and audio
                 break;
             case IDC_STOP_SENDER:
-                // Sender 종료
-                stopSENDER();
+                mManager.pauseCall();
                 break;
             case IDC_START_RECEIVER:
-                // 쓰레드 생성
-                hReceiverThread = CreateThread(NULL, 0, RunRECEIVER, NULL, 0, NULL);
-                if (hReceiverThread)
-                {
-                    CloseHandle(hReceiverThread);  // 쓰레드 핸들 닫기
-                }
+                mManager.setupReceiver(videoWindow1, 10001, 10002, 1); // first video setup
+                mManager.playReceiver(1);
                 break;
             case IDC_STOP_RECEIVER:
-                // 쓰레드 생성
-                stopRECEIVER();
+                mManager.pauseReceiver(1);
                 break;
-
             case IDC_START_RECEIVER2:
-                // 쓰레드 생성
-                hReceiver2Thread = CreateThread(NULL, 0, RunRECEIVER2, NULL, 0, NULL);
-                if (hReceiver2Thread)
-                {
-                    CloseHandle(hReceiver2Thread);  // 쓰레드 핸들 닫기
-                }
+                mManager.setupReceiver(videoWindow2, 10001, 10002, 2); // first video setup
+                mManager.playReceiver(2);
                 break;
             case IDC_STOP_RECEIVER2:
-                // 쓰레드 생성
-                stopRECEIVER2();
+                mManager.pauseReceiver(2);
                 break;
-
             case IDC_START_RECEIVER3:
-                // 쓰레드 생성
-                hReceiver3Thread = CreateThread(NULL, 0, RunRECEIVER3, NULL, 0, NULL);
-                if (hReceiver3Thread)
-                {
-                    CloseHandle(hReceiver3Thread);  // 쓰레드 핸들 닫기
-                }
+                mManager.setupReceiver(videoWindow3, 10001, 10002, 3); // first video setup
+                mManager.playReceiver(3);
                 break;
             case IDC_STOP_RECEIVER3:
-                // 쓰레드 생성
-                stopRECEIVER3();
+                mManager.pauseReceiver(3);
                 break;
             case IDC_ACCEPT_ALL:
-                // 쓰레드 생성
-                stopRECEIVER();
+                mManager.setupReceiver(videoWindow1, 10001, 10002, 1); // first video setup
+                mManager.setupReceiver(videoWindow2, 10001, 10002, 2); // second video setup
+                mManager.setupReceiver(videoWindow3, 10001, 10002, 3); // third video setup
+                mManager.playReceiver(1);
+                mManager.playReceiver(2);
+                mManager.playReceiver(3);
                 break;
-
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
-
         }
         break;
 
@@ -283,9 +259,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         pCout = NULL;
 
         // MultimediaReceiver 객체 삭제
-        mReceiver->stop();
-        mReceiver->cleanup();
-        delete mReceiver;
+        //mReceiver->stop();
+        //mReceiver->cleanup();
+        //delete mReceiver;
 
         break;
     default:
@@ -561,115 +537,6 @@ RECT getWinSize(HWND hWnd)
 	return rectSizeInfo;
 }
 
-// 쓰레드 함수
-DWORD WINAPI RunSENDER(LPVOID lpParam)
-{
-    // 쓰레드에서 실행할 로직을 작성합니다.
-    // 예: 버튼 클릭 이벤트에 대한 처리 등
-    //MessageBox(NULL, (LPCWSTR)"Thread is running!", (LPCWSTR)"Thread", MB_OK);
-    //sender();
-    HWND hWnd = reinterpret_cast<HWND>(lpParam);
-
-    mManager.initialize(videoWindow0);
-    
-    mManager.makeCall();
-
-    WaitForSingleObject(hSenderThread, INFINITE);
-    CloseHandle(hSenderThread);
-    hSenderThread = INVALID_HANDLE_VALUE;
-    return 0;
-}
-
-// 쓰레드 함수
-DWORD WINAPI RunRECEIVER(LPVOID lpParam)
-{
-    // 쓰레드에서 실행할 로직을 작성합니다.
-    // 예: 버튼 클릭 이벤트에 대한 처리 등
-    //MessageBox(NULL, (LPCWSTR)"Thread is running!", (LPCWSTR)"Thread", MB_OK);
-    //receiver();
-    // Close Thread
-
-    if (!mReceiver->initialize())
-    {
-        std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
-        return -1;
-    }
-    mReceiver->setPort(10001, 10002);
-
-    dynamic_cast<MultimediaReceiver*>(mReceiver)->setJitterBuffer(50);
-
-    dynamic_cast<MultimediaReceiver*>(mReceiver)->setRTP();
-
-    mReceiver->setWindow(videoWindow1);
-
-    mReceiver->start();
-
-    WaitForSingleObject(hReceiverThread, INFINITE);
-    CloseHandle(hReceiverThread);
-    hReceiverThread = INVALID_HANDLE_VALUE;
-    return 0;
-}
-
-// 쓰레드 함수
-DWORD WINAPI RunRECEIVER2(LPVOID lpParam)
-{
-    // 쓰레드에서 실행할 로직을 작성합니다.
-    // 예: 버튼 클릭 이벤트에 대한 처리 등
-    //MessageBox(NULL, (LPCWSTR)"Thread is running!", (LPCWSTR)"Thread", MB_OK);
-    //receiver();
-    // Close Thread
-
-    if (!mReceiver2->initialize())
-    {
-        std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
-        return -1;
-    }
-    mReceiver2->setPort(10001, 10002);
-
-    dynamic_cast<MultimediaReceiver*>(mReceiver2)->setJitterBuffer(50);
-
-    dynamic_cast<MultimediaReceiver*>(mReceiver2)->setRTP();
-
-    mReceiver2->setWindow(videoWindow2);
-
-    mReceiver2->start();
-
-    WaitForSingleObject(hReceiver2Thread, INFINITE);
-    CloseHandle(hReceiver2Thread);
-    hReceiver2Thread = INVALID_HANDLE_VALUE;
-    return 0;
-}
-
-// 쓰레드 함수
-DWORD WINAPI RunRECEIVER3(LPVOID lpParam)
-{
-    // 쓰레드에서 실행할 로직을 작성합니다.
-    // 예: 버튼 클릭 이벤트에 대한 처리 등
-    //MessageBox(NULL, (LPCWSTR)"Thread is running!", (LPCWSTR)"Thread", MB_OK);
-    //receiver();
-    // Close Thread
-
-    if (!mReceiver3->initialize())
-    {
-        std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
-        return -1;
-    }
-    mReceiver3->setPort(10001, 10002);
-
-    dynamic_cast<MultimediaReceiver*>(mReceiver3)->setJitterBuffer(50);
-
-    dynamic_cast<MultimediaReceiver*>(mReceiver3)->setRTP();
-
-    mReceiver3->setWindow(videoWindow3);
-
-    mReceiver3->start();
-
-    WaitForSingleObject(hReceiver3Thread, INFINITE);
-    CloseHandle(hReceiver3Thread);
-    hReceiver3Thread = INVALID_HANDLE_VALUE;
-    return 0;
-}
-
 static void SetStdOutToNewConsole(void)
 {
     // Allocate a console for this app
@@ -677,29 +544,3 @@ static void SetStdOutToNewConsole(void)
     //AttachConsole(ATTACH_PARENT_PROCESS);
     freopen_s(&pCout, "CONOUT$", "w", stdout);
 }
-
-static void stopSENDER() {
-    // Stop sender pipelines
-    mManager.pauseCall();
-}
-
-static void stopRECEIVER() {
-    // Stop sender pipelines
-    mReceiver->stop();
-}
-
-static void acceptAll() {
-    // Stop sender pipelines
-    mReceiver->stop();
-}
-
-static void stopRECEIVER2() {
-    // Stop sender pipelines
-    mReceiver2->stop();
-}
-
-static void stopRECEIVER3() {
-    // Stop sender pipelines
-    mReceiver3->stop();
-}
-

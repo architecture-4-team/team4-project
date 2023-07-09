@@ -11,4 +11,5 @@ public:
     virtual void stop() = 0;
     virtual void setPort(int videoPort, int audioPort) = 0;
     virtual void setWindow(void* hVideo) = 0;
+    virtual bool runThread() = 0;
 };

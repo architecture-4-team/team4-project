@@ -14,24 +14,22 @@ MultimediaSender::MultimediaSender()
     queueDisplay(nullptr), queueNetwork(nullptr), videoDisplaySink(nullptr),
     audioSrc(nullptr), audioConv(nullptr), audioResample(nullptr),
     audioOpusenc(nullptr), audioPay(nullptr), audioSink(nullptr),
-    senderVideoBus(nullptr), senderAudioBus(nullptr), mainLoop(nullptr)
+    senderVideoBus(nullptr), senderAudioBus(nullptr), 
+    mainLoop(nullptr), receiverIp("127.0.0.1"), initialized(false)
 {
-    // Initialize GStreamer
-    gst_init(nullptr, nullptr);
+    // Initialize GStreamer it is done at main
+    // gst_init(nullptr, nullptr);
 }
 
 MultimediaSender::~MultimediaSender()
 {
     cleanup();
-    gst_deinit();
+    //gst_deinit();
 }
 
 bool MultimediaSender::initialize()
 {
-	if(initMultimediaSender == TRUE)
-	{
-		return TRUE;
-	}
+	if(initialized) return true;
 
     // Create sender video pipeline
     senderVideoPipeline = gst_pipeline_new("senderVideoPipeline");
@@ -101,13 +99,17 @@ bool MultimediaSender::initialize()
     gst_bus_add_watch(senderVideoBus, (GstBusFunc)handle_sender_video_bus_message, this);
     gst_bus_add_watch(senderAudioBus, (GstBusFunc)handle_sender_audio_bus_message, this);
 
-    initMultimediaSender = TRUE;
+    initialized = true;
 
     return true;
 }
 
 void MultimediaSender::cleanup()
 {
+    // Cleanup the main loop
+    g_main_loop_unref(mainLoop);
+    mainLoop = nullptr;
+
     if (senderVideoPipeline)
     {
         gst_element_set_state(senderVideoPipeline, GST_STATE_NULL);
@@ -156,8 +158,7 @@ void MultimediaSender::cleanup()
         senderAudioBus = nullptr;
     }
 
-	initMultimediaSender = FALSE;
-	
+	initialized = false;
 }
 
 void MultimediaSender::start()
@@ -176,8 +177,6 @@ void MultimediaSender::start()
     // Run the main loop
     g_main_loop_run(mainLoop);
 
-    // Cleanup the main loop
-    g_main_loop_unref(mainLoop);
 }
 
 void MultimediaSender::stop()
@@ -190,6 +189,31 @@ void MultimediaSender::stop()
 
     // Quit the main loop
     g_main_loop_quit(mainLoop);
+}
+
+// 쓰레드 함수
+DWORD WINAPI MultimediaSender::threadCallback(LPVOID lpParam)
+{
+    // 쓰레드에서 실행할 로직을 작성합니다.
+    // 예: 버튼 클릭 이벤트에 대한 처리 등
+    MultimediaSender* pSender = static_cast<MultimediaSender*>(lpParam);
+
+    pSender->start();
+
+    WaitForSingleObject(pSender->hThread, INFINITE);
+    CloseHandle(pSender->hThread);
+    pSender->hThread = INVALID_HANDLE_VALUE;
+    return 0;
+}
+
+bool MultimediaSender::runThread()
+{
+    hThread = CreateThread(NULL, 0, MultimediaSender::threadCallback, this, 0, NULL);
+    if (hThread)
+    {
+        CloseHandle(hThread);  // 쓰레드 핸들 닫기
+    }
+    return true;
 }
 
 void MultimediaSender::setVideoResolution()
@@ -209,8 +233,9 @@ std::string MultimediaSender::getReceiverIP()
 	return receiverIp;
 }
 
-void MultimediaSender::setReceiverIP()
+void MultimediaSender::setReceiverIP(std::string ip)
 {
+    receiverIp = ip;
 	printf("receiveIp:%s\n", receiverIp.c_str());
     g_object_set(G_OBJECT(videoSink), "host", receiverIp.c_str(), nullptr);
     g_object_set(G_OBJECT(audioSink), "host", receiverIp.c_str(), nullptr);
