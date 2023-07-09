@@ -130,3 +130,9 @@ void MultimediaManager::playReceiver(int video)
 {
     receiverMap[video]->runThread();
 }
+
+void MultimediaManager::makeReceiverStateChange(int video, int state)
+{
+    MultimediaReceiver* receiver = static_cast<MultimediaReceiver*>(receiverMap[video]);
+    receiver->changeState(state);
+}

@@ -8,9 +8,6 @@
 #include <gst/gst.h>
 #include <stdio.h>
 
-//#include "MultimediaSender.h"
-#include "MultimediaReceiver.h"
-#include "MultimediaInterface.h"
 #include "MultimediaManager.h"
 #include "global_setting.h"
 
@@ -21,15 +18,8 @@ LRESULT OnSize(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 RECT getWinSize(HWND hWnd);
 static LRESULT OnCreate(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-DWORD WINAPI RunRECEIVER(LPVOID lpParam);
-DWORD WINAPI RunRECEIVER2(LPVOID lpParam);
-DWORD WINAPI RunRECEIVER3(LPVOID lpParam);
 static void SetStdOutToNewConsole(void);
 
-
-static void stopRECEIVER();
-static void stopRECEIVER2();
-static void stopRECEIVER3();
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
@@ -40,15 +30,7 @@ static FILE* pCout = NULL;
 
 HWND hWndMain;
 
-HANDLE hSenderThread;
-HANDLE hReceiverThread;
-HANDLE hReceiver2Thread;
-HANDLE hReceiver3Thread;
-
 MultimediaManager& mManager = MultimediaManager::GetInstance();
-//MultimediaInterface* mReceiver = new MultimediaReceiver();
-//MultimediaInterface* mReceiver2 = new MultimediaReceiver();
-//MultimediaInterface* mReceiver3 = new MultimediaReceiver();
 
 HWND videoWindow0; // Video 출력용 윈도우 핸들
 HWND videoWindow1; // Video 출력용 윈도우 핸들
@@ -194,7 +176,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 DestroyWindow(hWnd);
                 break;
             case IDC_START_SENDER:
-                // 쓰레드 생성
                 mManager.setupSender(videoWindow0, "127.0.0.1", 10001, 10002); // init manager with my video view
                 // Server Ip has been set up at initialize
                 mManager.makeCall(); // Receiver is decided by server application, just send video and audio
@@ -227,6 +208,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 mManager.setupReceiver(videoWindow1, 10001, 10002, 1); // first video setup
                 mManager.setupReceiver(videoWindow2, 10001, 10002, 2); // second video setup
                 mManager.setupReceiver(videoWindow3, 10001, 10002, 3); // third video setup
+                mManager.makeReceiverStateChange(1, GST_STATE_PAUSED);
+                mManager.makeReceiverStateChange(2, GST_STATE_PAUSED);
+                mManager.makeReceiverStateChange(3, GST_STATE_PAUSED);
                 mManager.playReceiver(1);
                 mManager.playReceiver(2);
                 mManager.playReceiver(3);
@@ -253,16 +237,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
     case WM_DESTROY:
-        PostQuitMessage(0);
+        delete& mManager;
         FreeConsole();
-        fclose(pCout);
-        pCout = NULL;
-
-        // MultimediaReceiver 객체 삭제
-        //mReceiver->stop();
-        //mReceiver->cleanup();
-        //delete mReceiver;
-
+        PostQuitMessage(0);
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -541,6 +518,6 @@ static void SetStdOutToNewConsole(void)
 {
     // Allocate a console for this app
     AllocConsole();
-    //AttachConsole(ATTACH_PARENT_PROCESS);
+    AttachConsole(ATTACH_PARENT_PROCESS);
     freopen_s(&pCout, "CONOUT$", "w", stdout);
 }

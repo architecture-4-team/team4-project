@@ -24,6 +24,8 @@ public:
     void setId(int id) { this->id = id; };
     int getId() { return id; };
     int getTotalReceiver() { return receieverNumbers; };
+    
+    void changeState(int state); // debug
 private:
     // Pipeline
     GstElement* receiverVideoPipeline;

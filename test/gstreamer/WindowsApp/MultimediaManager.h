@@ -23,6 +23,8 @@ public:
 
     void pauseReceiver(int video); //debug
     void playReceiver(int video); // debug
+
+    void makeReceiverStateChange(int video, int state); // debug
 private:
     MultimediaManager();
     MultimediaManager(const MultimediaManager&) = delete;

@@ -85,12 +85,12 @@ bool MultimediaReceiver::initialize()
     receiverAudioBus = gst_element_get_bus(receiverAudioPipeline);
 
     // Add watch to the bus to handle messages
-    gst_bus_add_watch(receiverVideoBus, (GstBusFunc)handle_receiver_audio_bus_message, this);
+    gst_bus_add_watch(receiverVideoBus, (GstBusFunc)handle_receiver_video_bus_message, this);
     gst_bus_add_watch(receiverAudioBus, (GstBusFunc)handle_receiver_audio_bus_message, this);
 
     // Get the sink pad of the sink element
     GstPad* pad = gst_element_get_static_pad(videoCapsfilter, "sink");
-    gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)probe_callback, NULL, NULL);
+    gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)probe_callback, this, NULL);
 
 
     /* ToDo : shall be discussed */
@@ -248,6 +248,16 @@ void MultimediaReceiver::setWindow(void* hVideo)
     //g_object_set(G_OBJECT(videoDisplaySink), "window-handle", reinterpret_cast<guintptr>(hVideo), nullptr);
 }
 
+void MultimediaReceiver::changeState(int state)
+{
+    if (receiverVideoPipeline)
+        gst_element_set_state(receiverVideoPipeline, (GstState)state);
+
+    if (receiverAudioPipeline)
+        gst_element_set_state(receiverAudioPipeline, (GstState)state);
+
+}
+
 static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, gpointer data)
 {
     MultimediaReceiver* receiver = static_cast<MultimediaReceiver*>(data);
@@ -274,7 +284,7 @@ static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, 
     {
         GstState old_state, new_state, pending_state;
         gst_message_parse_state_changed(msg, &old_state, &new_state, &pending_state);
-        g_print("Receiver Video state changed from %s to %s\n", gst_element_state_get_name(old_state), gst_element_state_get_name(new_state));
+        g_print("Receiver %d Video state changed from %s to %s\n", receiver->getId(), gst_element_state_get_name(old_state), gst_element_state_get_name(new_state));
         break;
     }
     case GST_MESSAGE_BUFFERING:
@@ -317,7 +327,7 @@ static gboolean handle_receiver_audio_bus_message(GstBus* bus, GstMessage* msg, 
     {
         GstState old_state, new_state, pending_state;
         gst_message_parse_state_changed(msg, &old_state, &new_state, &pending_state);
-        g_print("Receiver Audio state changed from %s to %s\n", gst_element_state_get_name(old_state), gst_element_state_get_name(new_state));
+        g_print("Receiver %d Audio state changed from %s to %s\n", receiver->getId(), gst_element_state_get_name(old_state), gst_element_state_get_name(new_state));
         break;
     }
     case GST_MESSAGE_BUFFERING:
@@ -336,6 +346,7 @@ static gboolean handle_receiver_audio_bus_message(GstBus* bus, GstMessage* msg, 
 
 static GstPadProbeReturn probe_callback(GstPad* pad, GstPadProbeInfo* info, gpointer user_data)
 {
+    MultimediaReceiver* receiver = static_cast<MultimediaReceiver*>(user_data);
     GstBuffer* buffer = GST_PAD_PROBE_INFO_BUFFER(info);
     guint64 bufferSize = gst_buffer_get_size(buffer);
     guint64 timestamp = GST_BUFFER_TIMESTAMP(buffer);
@@ -351,7 +362,7 @@ static GstPadProbeReturn probe_callback(GstPad* pad, GstPadProbeInfo* info, gpoi
     {
         guint64 dataRate = (totalBuffer * 8 * GST_SECOND) / durationNs;
 
-        g_print("Receive Data Rate: %lu bps\n", dataRate);
+        //g_print("Receive %d Data Rate: %lu bps\n", receiver->getId(), dataRate);
 
         totalBuffer = 0;
         prevTimestamp = timestamp;
