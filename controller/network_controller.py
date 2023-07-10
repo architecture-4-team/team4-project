@@ -165,9 +165,24 @@ class NetworkController(QObject):
             callbroker_service.remove(room)
 
         elif payload['command'] == 'JOIN':
-            ret, room = conferencecallbroker.search_by_roomid(payload['content']['roomid'])
+            # respone 가 PARTICIPATE 이면..
+            if payload['response'] == 'PARTICIPATE':
+                ret, room = conferencecallbroker.search_by_roomid(payload['contents']['roomid'])
+                if ret:
+                    room.set_state(CallState.CONFERENCE_CALLING)
+                    # con.call 의 경우, user 의 call 상태를 확인하는 것이 가장 중요
+                    # 1명만 있더라도 con.call 은 가능하다. ( ex. webex )
+                    room.set_user_callstate(payload['contents']['uuid'], CallState.CONFERENCE_CALLING)
+                    conferencecallbroker.print_info()
+            # response 가 NOT PARTICIPATE 이면.. ( 참가하지 않는다면 )
+
+        elif payload['command'] == "LEAVE":
+            ret, room = conferencecallbroker.search_by_roomid(payload['contents']['roomid'])
             if ret:
-                room.set_state(CallState.CONFERENCE_CALLING)
-                # con.call 의 경우, user 의 call 상태를 확인하는 것이 가장 중요
-                # 1명만 있더라도 con.call 은 가능하다. ( ex. webex )
-            pass
+                # LEAVE 를 보낸 참가자의 call 상태를 변경한다 ( IDLE )
+                room.set_user_callstate(payload['contents']['uuid'], CallState.IDLE)
+
+                # 마지막 참가자가 LEAVE 하면 conference room 을 제거한다
+
+                # JOIN 한 모든 참가자에게 LEAVE 를 알린다
+

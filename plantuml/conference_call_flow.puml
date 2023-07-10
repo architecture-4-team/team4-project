@@ -47,6 +47,8 @@ sa -> ua4 : <b>JOIN</b> \n \
 |||
 note over ua1, ua4 : 'JOIN' and 'CANCEL' buttons are enabled or displayed
 
+== JOIN ==
+
 ua1 -> sa : <b>JOIN</b> \n \
     { \n \
     \t"command": "JOIN", \n \
@@ -58,6 +60,129 @@ ua1 -> sa : <b>JOIN</b> \n \
 
 note over sa : Call State is CONFERENCE_CALL
 
+ua1 -> sa : send Video/Voice data
 
+ua2 -> sa : <b>JOIN</b> \n \
+    { \n \
+    \t"command": "JOIN", \n \
+    \t"response": <b>"PARTICIPATE"</b> or "NOT PARTICIPATE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 2's uuid", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+ua2 -> sa : send Video/Voice data
+
+ua3 -> sa : <b>JOIN</b> \n \
+    { \n \
+    \t"command": "JOIN", \n \
+    \t"response": <b>"PARTICIPATE"</b> or "NOT PARTICIPATE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 3's uuid", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+ua3 -> sa : send Video/Voice data
+
+ua4 -> sa : <b>JOIN</b> \n \
+    { \n \
+    \t"command": "JOIN", \n \
+    \t"response": <b>"PARTICIPATE"</b> or "NOT PARTICIPATE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 4's uuid", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+ua4 -> sa : send Video/Voice data
+
+== LEAVE ==
+
+ua1 -> sa : <b>LEAVE</b> \n \
+    { \n \
+    \t"command": "LEAVE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 1's uuid", \n \
+    \t\t"email": "user 1's email", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+note over sa : Call State is still CONFERENCE_CALL
+
+sa -> ua2 : <b>LEAVE</b> \n \
+    { \n \
+    \t"command": "LEAVE", \n \
+    \t"contents": { \n \
+    \t\t"email": "user 1's email", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+sa -> ua3 : <b>LEAVE</b> \n \
+    { \n \
+    \t"command": "LEAVE", \n \
+    \t"contents": { \n \
+    \t\t"email": "user 1's email", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+sa -> ua4 : <b>LEAVE</b> \n \
+    { \n \
+    \t"command": "LEAVE", \n \
+    \t"contents": { \n \
+    \t\t"email": "user 1's email", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+ua2 -> sa : <b>LEAVE</b> \n \
+    { \n \
+    \t"command": "LEAVE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 2's uuid", \n \
+    \t\t"email": "user 2's email", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+sa -> ua3 : <b>LEAVE</b> \n \
+    { \n \
+    \t"command": "LEAVE", \n \
+    \t"contents": { \n \
+    \t\t"email": "user 2's email", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+sa -> ua4 : <b>LEAVE</b> \n \
+    { \n \
+    \t"command": "LEAVE", \n \
+    \t"contents": { \n \
+    \t\t"email": "user 2's email", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+ua3 -> sa : <b>LEAVE</b> \n \
+    { \n \
+    \t"command": "LEAVE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 3's uuid", \n \
+    \t\t"email": "user 3's email", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+sa -> ua4 : <b>LEAVE</b> \n \
+    { \n \
+    \t"command": "LEAVE", \n \
+    \t"contents": { \n \
+    \t\t"email": "user 3's email", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+ua4 -> sa : <b>LEAVE</b> \n \
+    { \n \
+    \t"command": "LEAVE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 4's uuid", \n \
+    \t\t"email": "user 4's email", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+note over sa : Conference call is ended
 
 @enduml
