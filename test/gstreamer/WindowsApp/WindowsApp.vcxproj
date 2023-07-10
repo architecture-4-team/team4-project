@@ -513,7 +513,7 @@
   <ItemGroup>
     <ClCompile Include="MultiMediaSender.cpp" />
     <ClCompile Include="MultimediaManager.cpp" />
-    <ClCompile Include="MutiMediaReceiver.cpp" />
+    <ClCompile Include="MultiMediaReceiver.cpp" />
     <ClCompile Include="WindowsApp.cpp" />
   </ItemGroup>
   <ItemGroup>
