@@ -38,6 +38,7 @@ class NetworkManager:
     def init(cls, tcp_ports: list = None, udp_ports: list = None):
         cls.tcp_ports = tcp_ports
         cls.udp_ports = udp_ports
+        cls.client_sockets = []
 
     @classmethod
     def start_network_services(cls):
