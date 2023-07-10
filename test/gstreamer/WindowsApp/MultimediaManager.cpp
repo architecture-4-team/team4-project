@@ -50,6 +50,16 @@ bool MultimediaManager::setupSender(void* hVideo, std::string ip, int videoPort,
     dynamic_cast<MultimediaSender&>(mSender).setReceiverIP(ip);
     dynamic_cast<MultimediaSender&>(mSender).setPort(videoPort, audioPort);
 
+	static unsigned counter = 0;
+
+	if((counter%2) == 1)
+		dynamic_cast<MultimediaSender&>(mSender).setSSRC(0xABCD1230);
+	else
+		dynamic_cast<MultimediaSender&>(mSender).setSSRC(0xABCD1234);
+
+	if(counter == 0xFFFF)	counter = 0;
+	else					counter++;
+	
     // Set camera index (if necessary)
     dynamic_cast<MultimediaSender&>(mSender).setCameraIndex(0);
 
@@ -87,7 +97,6 @@ bool MultimediaManager::setupReceiver(void* hVideo,int videoPort, int audioPort,
         return 0;
     }
     receiver->setId(id);
-
     receiver->setPort(videoPort, audioPort);     // Set receive port
 
     receiver->setWindow(hVideo);       // Set window handle to show window

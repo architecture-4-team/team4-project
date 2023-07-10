@@ -1,6 +1,7 @@
 #include "MultiMediaReceiver.h"
 #include <gst/gst.h>
 #include <gst/video/videooverlay.h>
+#include <gst/rtp/gstrtpbuffer.h>
 
 
 static gboolean handle_receiver_video_bus_message(GstBus* bus, GstMessage* msg, gpointer data);
@@ -127,6 +128,14 @@ bool MultimediaReceiver::initialize()
     gst_bus_add_watch(receiverAudioBus, (GstBusFunc)handle_receiver_audio_bus_message, this);
 
     // Get the sink pad of the sink element
+	GstPad* Pad1 = gst_element_get_static_pad(videoCapsfilter1, "sink");
+	gst_pad_add_probe(Pad1, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)probe_callback_videoDepay1, NULL, NULL);
+#if 1
+	GstPad* Pad2 = gst_element_get_static_pad(videoCapsfilter2, "sink");
+	gst_pad_add_probe(Pad2, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)probe_callback_videoDepay2, NULL, NULL);
+	GstPad* Pad3 = gst_element_get_static_pad(videoCapsfilter3, "sink");
+	gst_pad_add_probe(Pad3, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)probe_callback_videoDepay3, NULL, NULL);
+#endif 
     GstPad* pad = gst_element_get_static_pad(videoCapsfilter1, "sink");
     gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)probe_callback, this, NULL);
 
@@ -429,6 +438,132 @@ static GstPadProbeReturn probe_callback(GstPad* pad, GstPadProbeInfo* info, gpoi
         prevTimestamp = timestamp;
     }
 
+    return GST_PAD_PROBE_OK;
+}
+
+static GstPadProbeReturn probe_callback_videoDepay1(GstPad* pad, GstPadProbeInfo* info, gpointer user_data)
+{
+    GstBuffer* buffer = GST_PAD_PROBE_INFO_BUFFER(info);
+    guint64 timestamp = GST_BUFFER_TIMESTAMP(buffer);
+    static guint64 prevTimestamp = 0;
+
+	GstRTPBuffer rtp_buffer;
+	guint32 ssrc = 0;
+	guint32 targetssrc = 0xABCD1234;
+	static guint32 prev_ssrc = 0;
+
+	if(buffer)
+	{
+		if(gst_rtp_buffer_map(buffer, GST_MAP_READ, &rtp_buffer))
+		{
+			ssrc = gst_rtp_buffer_get_ssrc(&rtp_buffer);
+
+			guint64 durationNs = timestamp - prevTimestamp;
+			
+			if (durationNs > GST_SECOND)
+			{
+				g_print("SSRC1: 0x%08x/0x%08x\n", ssrc, targetssrc);
+				prevTimestamp = timestamp;
+			}
+
+#if 1
+			if (ssrc == targetssrc)
+			{				
+				return GST_PAD_PROBE_OK;
+			}
+			else 
+			{
+				return GST_PAD_PROBE_DROP;
+			}
+#endif
+			prev_ssrc = ssrc;
+		}
+	}
+	
+    return GST_PAD_PROBE_OK;
+}
+
+static GstPadProbeReturn probe_callback_videoDepay2(GstPad* pad, GstPadProbeInfo* info, gpointer user_data)
+{
+    GstBuffer* buffer = GST_PAD_PROBE_INFO_BUFFER(info);
+    guint64 timestamp = GST_BUFFER_TIMESTAMP(buffer);
+    static guint64 prevTimestamp = 0;
+
+	GstRTPBuffer rtp_buffer;
+	guint32 ssrc = 0;
+	guint32 targetssrc = 0xABCD1230;
+	static guint32 prev_ssrc = 0;
+
+	if(buffer)
+	{
+		if(gst_rtp_buffer_map(buffer, GST_MAP_READ, &rtp_buffer))
+		{
+			ssrc = gst_rtp_buffer_get_ssrc(&rtp_buffer);
+
+			guint64 durationNs = timestamp - prevTimestamp;
+			
+			if (durationNs > GST_SECOND)
+			{
+				g_print("SSRC2: 0x%08x/0x%08x\n", ssrc, targetssrc);
+				prevTimestamp = timestamp;
+			}
+
+#if 1
+			if (ssrc == targetssrc)
+			{				
+				return GST_PAD_PROBE_OK;
+			}
+			else 
+			{
+				return GST_PAD_PROBE_DROP;
+			}
+#endif
+			prev_ssrc = ssrc;
+		}
+	}
+	
+    return GST_PAD_PROBE_OK;
+}
+
+static GstPadProbeReturn probe_callback_videoDepay3(GstPad* pad, GstPadProbeInfo* info, gpointer user_data)
+{
+    GstBuffer* buffer = GST_PAD_PROBE_INFO_BUFFER(info);
+    guint64 timestamp = GST_BUFFER_TIMESTAMP(buffer);
+    static guint64 prevTimestamp = 0;
+
+	GstRTPBuffer rtp_buffer;
+	guint32 ssrc = 0;
+	guint32 targetssrc = 0xABCD1233;
+	static guint32 prev_ssrc = 0;
+
+	if(buffer)
+	{
+		if(gst_rtp_buffer_map(buffer, GST_MAP_READ, &rtp_buffer))
+		{
+			ssrc = gst_rtp_buffer_get_ssrc(&rtp_buffer);
+
+			guint64 durationNs = timestamp - prevTimestamp;
+			
+			if (durationNs > GST_SECOND)
+			{
+				g_print("SSRC3: 0x%08x/0x%08x\n", ssrc, targetssrc);
+				prevTimestamp = timestamp;
+			}
+
+#if 1
+			if (ssrc == targetssrc)
+			{				
+				return GST_PAD_PROBE_OK;
+			}
+			else 
+			{
+				return GST_PAD_PROBE_DROP;
+			}
+#endif
+			prev_ssrc = ssrc;
+		}
+	}
+	
     return GST_PAD_PROBE_OK;
 }
 

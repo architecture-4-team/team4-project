@@ -464,7 +464,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(GSTREAMER_1_0_ROOT_MSVC_X86_64)lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>gobject-2.0.lib;glib-2.0.lib;gstreamer-1.0.lib;gstvideo-1.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>gobject-2.0.lib;glib-2.0.lib;gstreamer-1.0.lib;gstvideo-1.0.lib;gstrtp-1.0.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

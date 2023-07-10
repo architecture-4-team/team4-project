@@ -226,6 +226,15 @@ void MultimediaSender::setVideoResolution()
     gst_caps_unref(videoCaps);
 }
 
+void MultimediaSender::setSSRC(int ssrcFromServer)
+{	
+	g_object_set(videoPay, "ssrc", ssrcFromServer, nullptr);
+	printf("SSRC:0x%08x", ssrcFromServer);
+	
+	gint writtenSSRC;
+	g_object_get(videoPay, "ssrc", &writtenSSRC, nullptr);
+	printf("SSRC:->0x%08x\n", writtenSSRC);
+}
 
 std::string MultimediaSender::getReceiverIP()
 {

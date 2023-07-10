@@ -7,6 +7,14 @@
 #include <Windows.h>
 #include "MultimediaInterface.h"
 
+typedef struct ssrcData
+{
+	guint32 ssrcValue1;
+	guint32 ssrcValue2;
+	guint32 ssrcValue3;
+}SSRC_DATA_T;
+
+
 class MultimediaReceiver : public MultimediaInterface {
 public:
     MultimediaReceiver();
@@ -17,8 +25,7 @@ public:
     void stop();
     void setPort(int videoPort, int audioPort);
     void setWindow(void* hVideo);
-    bool runThread();
-
+    bool runThread();	
     void setWindow(void* hVideo1, void* hVideo2, void* hVideo3);
 
     void setJitterBuffer(int latency);
@@ -28,6 +35,7 @@ public:
     int getTotalReceiver() { return receieverNumbers; };
     
     void changeState(int state); // debug
+	SSRC_DATA_T *ssrcTemp;
 private:
     // Pipeline
     GstElement* receiverVideoPipeline;
@@ -74,7 +82,7 @@ private:
 
     GMainLoop* receiverLoop;
 
-    int id; // °´Ã¼ÀÇ id
+    int id; // Â°Â´ÃƒÂ¼Ã€Ã‡ id
     static int receieverNumbers;
 
     HANDLE hThread; // Sender Thread
@@ -83,4 +91,7 @@ private:
     bool initialized;
 };
 
-#endif  // MULTIMEDIARECEIVER_H
+static GstPadProbeReturn probe_callback_videoDepay1(GstPad* pad, GstPadProbeInfo* info, gpointer user_data);
+static GstPadProbeReturn probe_callback_videoDepay2(GstPad* pad, GstPadProbeInfo* info, gpointer user_data);
+static GstPadProbeReturn probe_callback_videoDepay3(GstPad* pad, GstPadProbeInfo* info, gpointer user_data);
+#endif  // MULTIMEDIARECEIVER_H

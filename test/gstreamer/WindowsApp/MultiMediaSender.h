@@ -29,6 +29,7 @@ public:
     bool runThread();
 
     void setVideoResolution();
+	void setSSRC(int ssrcFromServer);
 	std::string getReceiverIP();
     void setReceiverIP(std::string ip);
     void setCameraIndex(int index);
@@ -57,6 +58,7 @@ private:
     GstElement* senderAudioPipeline;
 
     GstElement* videoSrc;
+	GstElement* rtpsource;
     GstElement* videoFlip;
     GstElement* videoCapsfilter;
     GstElement* videoEnc;
