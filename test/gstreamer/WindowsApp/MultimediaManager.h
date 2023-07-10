@@ -16,6 +16,7 @@ public:
     // bool initialize(); // not used for now
     bool setupSender(void* hVideo, std::string ip, int videoPort, int audioPort);
     bool setupReceiver(void* hVideo, int videoPort, int audioPort, int id);
+    bool setupReceiver(void* hVideo1, void* hVideo2, void* hVideo3, int videoPort, int audioPort, int id);
     void makeCall();
     void pauseCall();
     bool acceptCall(/* Callee °´Ã¼ ¹Þ±â */void* hVideo); // not used for now

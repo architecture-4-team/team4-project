@@ -68,7 +68,7 @@ bool MultimediaManager::setupSender(void* hVideo, std::string ip, int videoPort,
     return true;
 }
 
-bool MultimediaManager::setupReceiver(void* hVideo, int videoPort, int audioPort, int id)
+bool MultimediaManager::setupReceiver(void* hVideo,int videoPort, int audioPort, int id)
 {
     MultimediaReceiver* receiver;
     if (!receiverMap[id])
@@ -84,13 +84,40 @@ bool MultimediaManager::setupReceiver(void* hVideo, int videoPort, int audioPort
     if (!receiver->initialize())
     {
         std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
-        return -1;
+        return 0;
     }
     receiver->setId(id);
 
     receiver->setPort(videoPort, audioPort);     // Set receive port
 
     receiver->setWindow(hVideo);       // Set window handle to show window
+
+    return true;
+}
+
+bool MultimediaManager::setupReceiver(void* hVideo1, void* hVideo2, void* hVideo3, int videoPort, int audioPort, int id)
+{
+    MultimediaReceiver* receiver;
+    if (!receiverMap[id])
+    {
+        receiver = new MultimediaReceiver(); // MultimediaReceiver °´Ã¼ »ý¼º
+        receiverMap[id] = receiver;
+    }
+    else
+    {
+        receiver = static_cast<MultimediaReceiver*>(receiverMap[id]);
+    }
+
+    if (!receiver->initialize())
+    {
+        std::cerr << "Failed to initialize MultimediaReceiver." << std::endl;
+        return 0;
+    }
+    receiver->setId(id);
+
+    receiver->setPort(videoPort, audioPort);     // Set receive port
+
+    receiver->setWindow(hVideo1, hVideo2, hVideo3);       // Set window handle to show window
     
     return true;
 }

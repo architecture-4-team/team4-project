@@ -184,7 +184,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 mManager.pauseCall();
                 break;
             case IDC_START_RECEIVER:
-                mManager.setupReceiver(videoWindow1, 10001, 10002, 1); // first video setup
+                mManager.setupReceiver(videoWindow1, videoWindow2, videoWindow3, 10001, 10002, 1); // first video setup
                 mManager.playReceiver(1);
                 break;
             case IDC_STOP_RECEIVER:

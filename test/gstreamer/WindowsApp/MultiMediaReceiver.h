@@ -19,6 +19,8 @@ public:
     void setWindow(void* hVideo);
     bool runThread();
 
+    void setWindow(void* hVideo1, void* hVideo2, void* hVideo3);
+
     void setJitterBuffer(int latency);
     void setRTP();
     void setId(int id) { this->id = id; };
@@ -31,12 +33,33 @@ private:
     GstElement* receiverVideoPipeline;
     GstElement* receiverAudioPipeline;
 
-    GstElement* videoSrc;
-    GstElement* videoCapsfilter;
     GstElement* jitterbufferVideo;
-    GstElement* videoDepay;
-    GstElement* videoDec;
-    GstElement* videoSink;
+
+    GstElement* videoSrc;
+
+    GstElement* videoCapsfilter1;
+    GstElement* videoDepay1;
+    GstElement* videoDec1;
+    GstElement* videoSink1;
+
+    GstElement* videoCapsfilter2;
+    GstElement* videoDepay2;
+    GstElement* videoDec2;
+    GstElement* videoSink2;
+
+    GstElement* videoCapsfilter3;
+    GstElement* videoDepay3;
+    GstElement* videoDec3;
+    GstElement* videoSink3;
+
+    GstElement* tee;
+
+    GstElement* queue1;
+    GstElement* queue2;
+    GstElement* queue3;
+
+    GstPad* tee_pad1, *tee_pad2, *tee_pad3;
+    GstPad* queue_pad1, *queue_pad2, *queue_pad3;
     
     GstElement* audioSrc;
     GstElement* audioCapsfilter;

@@ -12,9 +12,7 @@ int MultimediaReceiver::receieverNumbers = 0;
 
 MultimediaReceiver::MultimediaReceiver()
     : receiverVideoPipeline(nullptr), receiverAudioPipeline(nullptr),
-    videoSrc(nullptr), videoCapsfilter(nullptr),
-    jitterbufferVideo(nullptr), videoDepay(nullptr), videoDec(nullptr),
-    videoSink(nullptr), audioSrc(nullptr), audioCapsfilter(nullptr),
+    videoSrc(nullptr), audioSrc(nullptr), audioCapsfilter(nullptr),
     jitterbufferAudio(nullptr), audioDec(nullptr), audioDepay(nullptr),
     audioConv(nullptr), audioSink(nullptr), receiverVideoBus(nullptr),
     receiverLoop(nullptr), initialized(false)
@@ -40,11 +38,26 @@ bool MultimediaReceiver::initialize()
 
     // Create video elements
     videoSrc = gst_element_factory_make("udpsrc", "videoSrc");
-    videoCapsfilter = gst_element_factory_make("capsfilter", "videoCapsfilter");
-    jitterbufferVideo = gst_element_factory_make("rtpjitterbuffer", "jitterbufferVideo");
-    videoDepay = gst_element_factory_make("rtph264depay", "videoDepay");
-    videoDec = gst_element_factory_make("avdec_h264", "videoDec");
-    videoSink = gst_element_factory_make("d3dvideosink", "videoSink");
+
+    tee = gst_element_factory_make("tee", "tee");
+
+    queue1 = gst_element_factory_make("queue", "queue1");
+    videoCapsfilter1 = gst_element_factory_make("capsfilter", "videoCapsfilter1");
+    videoDepay1 = gst_element_factory_make("rtph264depay", "videoDepay1");
+    videoDec1 = gst_element_factory_make("avdec_h264", "videoDec1");
+    videoSink1 = gst_element_factory_make("d3dvideosink", "videoSink1");
+
+    queue2 = gst_element_factory_make("queue", "queue2");
+    videoCapsfilter2 = gst_element_factory_make("capsfilter", "videoCapsfilter2");
+    videoDepay2 = gst_element_factory_make("rtph264depay", "videoDepay");
+    videoDec2 = gst_element_factory_make("avdec_h264", "videoDec");
+    videoSink2 = gst_element_factory_make("d3dvideosink", "videoSink");
+
+    queue3 = gst_element_factory_make("queue", "queue3");
+    videoCapsfilter3 = gst_element_factory_make("capsfilter", "videoCapsfilter3");
+    videoDepay3 = gst_element_factory_make("rtph264depay", "videoDepa3");
+    videoDec3 = gst_element_factory_make("avdec_h264", "videoDe3");
+    videoSink3 = gst_element_factory_make("d3dvideosink", "videoSin3");
 
     // Create receiver audio pipeline
     receiverAudioPipeline = gst_pipeline_new("receiverAudioPipeline");
@@ -59,23 +72,48 @@ bool MultimediaReceiver::initialize()
     audioSink = gst_element_factory_make("autoaudiosink", "audioSink");
 
     // Check if all elements are created successfully
-    if (!receiverVideoPipeline || !receiverAudioPipeline || !videoSrc || !videoCapsfilter ||
-        !jitterbufferVideo || !videoDepay || !videoDec || !videoSink || !audioSrc ||
-        !audioCapsfilter || !jitterbufferAudio || !audioDec || !audioDepay || !audioConv || !audioSink)
+    if (!receiverVideoPipeline || !receiverAudioPipeline || !videoSrc || !tee ||
+        !queue1 || !videoCapsfilter1 || !videoDepay1 || !videoDec1 || !videoSink1 ||
+        !queue2 || !videoCapsfilter2 || !videoDepay2 || !videoDec2 || !videoSink2 ||
+        !queue3 || !videoCapsfilter3 || !videoDepay3 || !videoDec3 || !videoSink3 ||
+        !audioSrc || !audioCapsfilter || !jitterbufferAudio || !audioDec || !audioDepay || !audioConv || !audioSink)
     {
         std::cerr << "Failed to create GStreamer elements." << std::endl;
         cleanup();
         return false;
     }
 
-    // Add elements to pipelines
-    gst_bin_add_many(GST_BIN(receiverVideoPipeline), videoSrc, videoCapsfilter, jitterbufferVideo,
-        videoDepay, videoDec, videoSink, nullptr);
-    gst_bin_add_many(GST_BIN(receiverAudioPipeline), audioSrc, audioCapsfilter, jitterbufferAudio,
-        audioDec, audioDepay, audioConv, audioSink, nullptr);
+    // 요소를 파이프라인에 추가
+    gst_bin_add_many(GST_BIN(receiverVideoPipeline), videoSrc, tee, 
+        queue1, videoCapsfilter1, videoDepay1, videoDec1, videoSink1,
+        queue2, videoCapsfilter2, videoDepay2, videoDec2, videoSink2,
+        queue3, videoCapsfilter3, videoDepay3, videoDec3, videoSink3, NULL);
 
-    // Link video elements
-    gst_element_link_many(videoSrc, videoCapsfilter, jitterbufferVideo, videoDepay, videoDec, videoSink, nullptr);
+    // 요소 연결
+    gst_element_link(videoSrc, tee);
+
+    // Tee와 큐 연결
+    tee_pad1 = gst_element_request_pad_simple(tee, "src_%u");
+    queue_pad1 = gst_element_get_static_pad(queue1, "sink");
+    tee_pad2 = gst_element_request_pad_simple(tee, "src_%u");
+    queue_pad2 = gst_element_get_static_pad(queue2, "sink");
+    tee_pad3 = gst_element_request_pad_simple(tee, "src_%u");
+    queue_pad3 = gst_element_get_static_pad(queue3, "sink");
+    
+    if (gst_pad_link(tee_pad1, queue_pad1) != GST_PAD_LINK_OK ||
+        gst_pad_link(tee_pad2, queue_pad2) != GST_PAD_LINK_OK || 
+        gst_pad_link(tee_pad3, queue_pad3) != GST_PAD_LINK_OK) {
+        g_printerr("Tee could not be linked.\n");
+        gst_object_unref(receiverVideoPipeline);
+        return 0;
+    }
+    gst_object_unref(tee_pad1);
+    gst_object_unref(tee_pad2);
+    gst_object_unref(tee_pad3);
+
+    gst_element_link_many(queue1, videoCapsfilter1, videoDepay1, videoDec1, videoSink1, NULL);
+    gst_element_link_many(queue2, videoCapsfilter2, videoDepay2, videoDec2, videoSink2, NULL);
+    gst_element_link_many(queue3, videoCapsfilter3, videoDepay3, videoDec3, videoSink3, NULL);
 
     // Link audio elements
     gst_element_link_many(audioSrc, audioCapsfilter, jitterbufferAudio, audioDepay, audioDec, audioConv, audioSink, nullptr);
@@ -89,9 +127,8 @@ bool MultimediaReceiver::initialize()
     gst_bus_add_watch(receiverAudioBus, (GstBusFunc)handle_receiver_audio_bus_message, this);
 
     // Get the sink pad of the sink element
-    GstPad* pad = gst_element_get_static_pad(videoCapsfilter, "sink");
+    GstPad* pad = gst_element_get_static_pad(videoCapsfilter1, "sink");
     gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback)probe_callback, this, NULL);
-
 
     /* ToDo : shall be discussed */
     this->setJitterBuffer(50);
@@ -124,11 +161,6 @@ void MultimediaReceiver::cleanup()
 
     // Release video elements
     gst_object_unref(videoSrc);
-    gst_object_unref(videoCapsfilter);
-    gst_object_unref(jitterbufferVideo);
-    gst_object_unref(videoDepay);
-    gst_object_unref(videoDec);
-    gst_object_unref(videoSink);
 
     // Release audio elements
     gst_object_unref(audioSrc);
@@ -226,9 +258,17 @@ void MultimediaReceiver::setJitterBuffer(int latency)
 void MultimediaReceiver::setRTP()
 {
     // RTP video format (caps) settings
-    GstCaps* videoCaps = gst_caps_from_string("application/x-rtp, media=(string)video, payload=(int)96");
-    g_object_set(G_OBJECT(videoCapsfilter), "caps", videoCaps, NULL);
-    gst_caps_unref(videoCaps);
+    GstCaps* videoCaps1 = gst_caps_from_string("application/x-rtp, media=(string)video, payload=(int)96");
+    g_object_set(G_OBJECT(videoCapsfilter1), "caps", videoCaps1, NULL);
+    gst_caps_unref(videoCaps1);
+
+    GstCaps* videoCaps2 = gst_caps_from_string("application/x-rtp, media=(string)video, payload=(int)96");
+    g_object_set(G_OBJECT(videoCapsfilter2), "caps", videoCaps2, NULL);
+    gst_caps_unref(videoCaps2);
+
+    GstCaps* videoCaps3 = gst_caps_from_string("application/x-rtp, media=(string)video, payload=(int)96");
+    g_object_set(G_OBJECT(videoCapsfilter3), "caps", videoCaps3, NULL);
+    gst_caps_unref(videoCaps3);
 
     // RTP audio format (caps) settings
     GstCaps* audioCaps = gst_caps_from_string("application/x-rtp, media=(string)audio, encoding-name=OPUS,  payload=(int)96");
@@ -236,16 +276,37 @@ void MultimediaReceiver::setRTP()
     gst_caps_unref(audioCaps);
 }
 
-void MultimediaReceiver::setWindow(void* hVideo)
+void MultimediaReceiver::setWindow(void* hVideo) {
+    // VideoDisplaySink를 윈도우와 연결
+     // 비디오 출력 설정
+    g_object_set(G_OBJECT(videoSink1), "force-aspect-ratio", TRUE, NULL);
+
+    // 비디오 오버레이 설정
+    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(videoSink1), (guintptr)hVideo);
+}
+
+
+void MultimediaReceiver::setWindow(void* hVideo1, void* hVideo2, void* hVideo3)
 {
     // VideoDisplaySink를 윈도우와 연결
      // 비디오 출력 설정
-    g_object_set(G_OBJECT(videoSink), "force-aspect-ratio", TRUE, NULL);
+    g_object_set(G_OBJECT(videoSink1), "force-aspect-ratio", TRUE, NULL);
 
     // 비디오 오버레이 설정
-    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(videoSink), (guintptr)hVideo);
+    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(videoSink1), (guintptr)hVideo1);
 
-    //g_object_set(G_OBJECT(videoDisplaySink), "window-handle", reinterpret_cast<guintptr>(hVideo), nullptr);
+    // 비디오 출력 설정
+    g_object_set(G_OBJECT(videoSink2), "force-aspect-ratio", TRUE, NULL);
+
+    // 비디오 오버레이 설정
+    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(videoSink2), (guintptr)hVideo2);
+
+    // 비디오 출력 설정
+    g_object_set(G_OBJECT(videoSink3), "force-aspect-ratio", TRUE, NULL);
+
+    // 비디오 오버레이 설정
+    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(videoSink3), (guintptr)hVideo3);
+
 }
 
 void MultimediaReceiver::changeState(int state)
