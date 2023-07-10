@@ -5,11 +5,10 @@ from services.network_manager import NetworkManager
 
 
 class CallRoom:
-    def __init__(self, sender, receiver, network_manager):
+    def __init__(self, sender, receiver):
         self.call_id = '0'
         self.sender_user: UserExt = sender
         self.receiver_user: UserExt = receiver
-        self.network_manager: NetworkManager = network_manager
         self.call_state = CallState.IDLE  # IDLE, INVITE, CALLING
 
     def set_call_id(self, callid):
@@ -33,7 +32,7 @@ class CallRoom:
                 }''' % (self.receiver_user.uuid, self.call_id)
             data_json = json.loads(data)
             ret_data_json = json.dumps(data_json)
-            self.network_manager.send_tcp_data(ret_data_json.encode(),
+            NetworkManager.send_tcp_data(ret_data_json.encode(),
                                                self.receiver_user.socket_info)
 
             data = '''{
@@ -45,7 +44,7 @@ class CallRoom:
                 }''' % (self.sender_user.uuid, self.call_id)
             data_json = json.loads(data)
             ret_data_json = json.dumps(data_json)
-            self.network_manager.send_tcp_data(ret_data_json.encode(),
+            NetworkManager.send_tcp_data(ret_data_json.encode(),
                                                self.sender_user.socket_info)
 
             self.sender_user.set_state(CallState.IDLE)
@@ -62,7 +61,7 @@ class CallRoom:
                 }''' % (self.receiver_user.uuid, self.sender_user.email, self.call_id)
             data_json = json.loads(data)
             ret_data_json = json.dumps(data_json)
-            self.network_manager.send_tcp_data(ret_data_json.encode(),
+            NetworkManager.send_tcp_data(ret_data_json.encode(),
                                                self.receiver_user.socket_info)
 
             self.sender_user.set_state(CallState.INVITE)
@@ -80,7 +79,7 @@ class CallRoom:
                             }''' % (self.sender_user.uuid, self.call_id)
             data_json = json.loads(data)
             ret_data_json = json.dumps(data_json)
-            self.network_manager.send_tcp_data(ret_data_json.encode(),
+            NetworkManager.send_tcp_data(ret_data_json.encode(),
                                                self.sender_user.socket_info)
 
             self.sender_user.set_state(CallState.IDLE)
@@ -96,8 +95,8 @@ class CallRoom:
                 }''' % (self.sender_user.uuid, self.call_id)
             data_json = json.loads(data)
             ret_data_json = json.dumps(data_json)
-            self.network_manager.send_tcp_data(ret_data_json.encode(),
-                                               self.sender_user.socket_info)
+            NetworkManager.send_tcp_data(ret_data_json.encode(),
+                                         self.sender_user.socket_info)
 
             self.sender_user.set_state(CallState.CALLING)
             self.receiver_user.set_state(CallState.CALLING)

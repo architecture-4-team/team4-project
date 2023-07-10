@@ -1,6 +1,8 @@
 import atexit
 
 from PyQt5.QtWidgets import QApplication
+
+from controller.gstream_controller import GStreamController
 from view.main_window import MainWindow
 from services.network_manager import NetworkManager
 from controller.network_controller import NetworkController
@@ -14,7 +16,7 @@ UDP_PORTS = [10001, 10002]
 
 
 def cleanup():
-    netMan.stop_network_services()
+    NetworkManager.stop_network_services()
 
     # Perform other cleanup tasks
     print("Performing cleanup...")
@@ -29,9 +31,9 @@ if __name__ == "__main__":
     # 초기화 작업
 
     # initiate network
-    netMan = NetworkManager(tcp_ports=TCP_PORTS, udp_ports=UDP_PORTS)
-    # netMan.start_network_services()
-    netCon = NetworkController(netMan)
+    NetworkManager.init(tcp_ports=TCP_PORTS, udp_ports=UDP_PORTS)
+    netCon = NetworkController()
+    GStreamController().start()
 
     # ifStorage: IStorageService = MySQLService()
     # storageMan = StorageManager(ifStorage)

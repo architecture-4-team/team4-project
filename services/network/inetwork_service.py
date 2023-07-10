@@ -1,8 +1,8 @@
 # services/network_service.py
-from abc import ABC, abstractmethod
+from abc import abstractmethod, ABCMeta
 
 
-class INetworkService(ABC):
+class INetworkService(metaclass=ABCMeta):
     @abstractmethod
     def __init__(self, port: int):
         pass
@@ -22,6 +22,3 @@ class INetworkService(ABC):
     @abstractmethod
     def receive(self):
         pass
-    # @abstractmethod
-    # def set_strategy(self, strategy):
-    #     pass

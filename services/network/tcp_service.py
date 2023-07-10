@@ -4,7 +4,7 @@ import socket
 import threading
 
 
-class TCPService(INetworkService, ABC):
+class TCPService(INetworkService):
     def __init__(self, port: int):
         super().__init__(port)
         self.port = port
@@ -19,7 +19,7 @@ class TCPService(INetworkService, ABC):
         print(f'TCP start : {self.port}')
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.server_socket.bind(('localhost', self.port))
-        self.server_socket.bind(('192.168.56.102', self.port))
+        self.server_socket.bind(('0.0.0.0', self.port))
         self.server_socket.listen(1)
         self.is_listening = True
         self.accept_connections()
@@ -31,7 +31,7 @@ class TCPService(INetworkService, ABC):
             # self.client_sockets.append(client_socket)
             self.notify_client_connected(client_socket)
             client_thread = threading.Thread(target=self.handle_client, args=(client_socket,))
-            client_thread.setDaemon(True)
+            client_thread.daemon = True
             client_thread.start()
 
     def stop(self):

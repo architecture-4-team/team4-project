@@ -6,24 +6,25 @@ from model.logout import LogOut
 from model.callbroker import callbroker_service
 from model.callroom import CallRoom
 from model.directory_singleton import directory_service
+from services.network_manager import NetworkManager
 from utils.call_state import CallState
 
 
 class NetworkController(QObject):
     signal_login = pyqtSignal(str, object)
 
-    def __init__(self, network_manager):
+    def __init__(self):
         super().__init__()
-        self.network_manager = network_manager
-        self.network_manager.start_network_services()
+        NetworkManager.start_network_services()
 
         # TCPService의 데이터 수신 이벤트에 대한 콜백 등록
-        for tcp_service in self.network_manager.tcp_services:
+        for tcp_service in NetworkManager.get_tcp_services():
             tcp_service.set_receive_callback(self.handle_tcp_data)
 
         # UDPService의 데이터 수신 이벤트에 대한 콜백 등록
-        for udp_service in self.network_manager.udp_services:
-            udp_service.set_receive_callback(self.handle_udp_data)
+        # for udp_service in self.network_manager.udp_services:
+            # udp_service.set_receive_callback(self.handle_udp_data)
+            # udp_service.set_receive_callback(self.handle_udp_data)
 
     def handle_tcp_data(self, data, client_socket):
         # 데이터 수신 이벤트 처리 로직
@@ -38,7 +39,7 @@ class NetworkController(QObject):
             print('command:', payload['command'])
         except json.JSONDecodeError:
             print('Invalid JSON format')
-            pass
+            return
 
         # 프로토콜 parsing 을 위해 분리 필요!!
         if payload['command'] == 'LOGIN':  # 로그인인 경우 ( ) -> Login 객체로 이벤트 전달
@@ -64,7 +65,7 @@ class NetworkController(QObject):
                 print(ret_data)
                 data_json = json.loads(ret_data)
                 ret_data_json = json.dumps(data_json)
-                self.network_manager.send_tcp_data(ret_data_json.encode(), client_socket)
+                NetworkManager.send_tcp_data(ret_data_json.encode(), client_socket)
             else:
                 ret_data = f'''{{
                         "command": "LOGIN",
@@ -75,7 +76,7 @@ class NetworkController(QObject):
                         }}'''
                 data_json = json.loads(ret_data)
                 ret_data_json = json.dumps(data_json)
-                self.network_manager.send_tcp_data(ret_data_json.encode(), client_socket)
+                NetworkManager.send_tcp_data(ret_data_json.encode(), client_socket)
         elif payload['command'] == 'LOGOUT':
             print(f'LOGOUT info :', payload['contents']['uuid'])
             ret, user = LogOut.do_process(uuid=payload['contents']['uuid'])
@@ -88,7 +89,7 @@ class NetworkController(QObject):
                 }}''' % user.uuid
             data_json = json.loads(ret_data)
             ret_data_json = json.dumps(data_json)
-            self.network_manager.send_tcp_data(ret_data_json.encode(), client_socket)
+            NetworkManager.send_tcp_data(ret_data_json.encode(), client_socket)
             pass
         elif payload['command'] == 'INVITE':  # call -> callbroker 로 이벤트 전달
             # 수신자 online 여부 체크 ( directory 내에 있으면 됨 )
@@ -97,7 +98,7 @@ class NetworkController(QObject):
             # 수신자 busy 여부 체크 ( User 객체의 call_state 를 확인 )
             if ret_dst != False and (dst_user.get_state() == CallState.IDLE):
                 # CallRoom 을 생성하고 call broker 에 방을 추가한다
-                room = CallRoom(snd_user, dst_user, self.network_manager)
+                room = CallRoom(snd_user, dst_user)
                 # call_id 는 call broker 에서 받아온다
                 room.set_call_id(str(callbroker_service.make_call_id()))
                 # state 를 IDLE 에서 INVITE로 변경
@@ -160,8 +161,3 @@ class NetworkController(QObject):
             # 해당 room 의 call 상태가 INVITE 일때만 가능하도록 예외처리 필요
             room.set_state(CallState.CANCEL)
             callbroker_service.remove(room)
-
-    def handle_udp_data(self, data, address):
-        # UDP 데이터 수신 이벤트 처리 로직
-        print(f"UDPService: Received data from {address[0]}:{address[1]}: {data.decode()}")
-        # self.network_manager.send_udp_data(data, address)

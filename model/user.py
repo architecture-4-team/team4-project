@@ -12,7 +12,8 @@ class User:
     firstname: str
     lastname: str
     ip: str
-    status: str
+    online: str
+    enable: str
     summary: str
     question1: str
     question2: str
