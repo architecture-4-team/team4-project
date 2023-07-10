@@ -44,6 +44,6 @@ sa -> ua4 : <b>JOIN</b> \n \
     \t\t"participants": ["111@abc.com", \n\t\t\t\t\t\t"222@abc.com", \n\t\t\t\t\t\t"333@abc.com"]} \n \
     }
 |||
-note over ua1, ua4 : 'JOIN' button is enabled or displayed
+note over ua1, ua4 : 'JOIN' and 'CANCEL' buttons are enabled or displayed
 
 @enduml
