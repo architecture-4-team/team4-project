@@ -13,6 +13,7 @@ TARGET_ID = 'test2@lge.com'
 PWD = 'qwerty'
 UUID = ''
 callid = ''
+roomid = ''
 
 
 # JSON 데이터를 서버로 전송하는 함수
@@ -31,7 +32,7 @@ def receive_json_data(sock):
 
 # 수신 쓰레드에서 실행될 함수
 def receive_thread(sock):
-    global UUID, callid
+    global UUID, callid, roomid
     while True:
         try:
             received_data = receive_json_data(sock)
@@ -42,6 +43,10 @@ def receive_thread(sock):
             if "callid" in received_data['contents']:
                 callid = received_data['contents']['callid']
                 print(callid)
+
+            if "roomid" in received_data['contents']:
+                roomid = received_data['contents']['roomid']
+                print(f"room id is : {roomid}")
 
         except json.JSONDecodeError:
             print('recv Invalid JSON format')
@@ -125,6 +130,14 @@ class MainWindow(QMainWindow):
         self.button7 = QPushButton('CANCEL2', self)
         self.button7.clicked.connect(self.button7_clicked)
         self.button7.setGeometry(50, 350, 100, 30)
+
+        self.button8 = QPushButton('JOIN:TRUE', self)
+        self.button8.clicked.connect(self.button8_clicked)
+        self.button8.setGeometry(170, 50, 100, 30)
+
+        self.button9 = QPushButton('JOIN:FALSE', self)
+        self.button9.clicked.connect(self.button9_clicked)
+        self.button9.setGeometry(170, 100, 100, 30)
 
         # 추가 버튼 생성
         # self.additional_buttons = []
@@ -274,10 +287,28 @@ class MainWindow(QMainWindow):
         except json.JSONDecodeError:
             print('button7 Invalid JSON format')
         pass
-    # def additional_button_clicked(self, num):
-    #     print(f'Additional Button {num} clicked')
-    #     # 추가 버튼을 클릭했을 때 실행할 코드를 여기에 추가
 
+    def button8_clicked(self):
+        global callid, UUID, roomid
+        print('**** JOIN : PARTICIPATE ****')
+        data = '''{
+                    "command": "JOIN",
+                    "response": "PARTICIPATE",
+                    "contents": {
+                        "uuid": "%s",
+                        "roomid": "%s"
+                    }
+                }''' % (UUID, roomid)
+        print(type(data))
+        try:
+            json_data = json.loads(data)  # JSON 파싱
+            print(type(json_data))
+            send_json_data(sock, json_data)
+        except json.JSONDecodeError:
+            print('button8 Invalid JSON format')
+
+    def button9_clicked(self):
+        pass
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

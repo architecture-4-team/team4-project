@@ -22,8 +22,24 @@ class ConferenceRoom:
         if pre_state != self.call_state:
             self.proceed_next_step(state)
 
+    def set_user_callstate(self, uuid, call_state):
+        for user in self.participants:
+            if user.uuid == uuid:
+                user.set_state(call_state)
+
     def get_participants_number(self):
         return len(self.participants)
+
+    def get_participated_members(self):
+        count = 0;
+        for user in self.participants:
+            if user.get_state() == CallState.CONFERENCE_CALLING:
+                count = count + 1
+        return count
+
+    def print_users_call_states(self):
+        for user in self.participants:
+            print(f'\t\t{user.email} : {user.get_state()}')
 
     def proceed_next_step(self, state):
         if state == CallState.LEAVE:

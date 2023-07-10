@@ -11,6 +11,6 @@ class CallState(Enum):
     # conference 에 대한 확장
     JOIN = 6
     CONFERENCE_CALLING = 7
-    LEAVE = 8
+    # LEAVE = 8
 
-    MAX = 9
+    MAX = 8
