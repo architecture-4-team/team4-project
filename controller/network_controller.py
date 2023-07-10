@@ -144,6 +144,7 @@ class NetworkController(QObject):
             # call id 로부터 call room 을 찾는다.
             ret, room = callbroker_service.search_by_callid(payload['contents']['callid'])
             room.set_state(CallState.ACCEPT)
+            room.set_state(CallState.CALLING)
 
         elif payload['command'] == 'BYE':
             if payload['contents']['callid'] == '0':
