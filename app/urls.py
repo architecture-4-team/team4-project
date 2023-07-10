@@ -15,10 +15,11 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
+from django.contrib import admin
 
 from project.api.action import Login, LogOut, Register, Reset
 from project.api.contact import ContactDetail
-from project.api.user import UserList, UserDetail
+from project.api.user import UserList, UserDetail, UserSearch
 from project.views import LoginView, ContactsView, RegisterView, UpdateView, ResetView
 
 urlpatterns = [
@@ -31,6 +32,7 @@ urlpatterns = [
     # api/user
     path('api/user', UserList.as_view()),
     path('api/user/<uuid>', UserDetail.as_view()),
+    path('api/user/search/<key>', UserSearch.as_view()),
 
     # api/contact
     path('api/contact', UserList.as_view()),
@@ -42,4 +44,5 @@ urlpatterns = [
     path('register/', RegisterView.as_view()),
     path('update/', UpdateView.as_view()),
     path('reset/', ResetView.as_view()),
+    path('admin/', admin.site.urls),
 ]

@@ -141,3 +141,26 @@ class UserEnable(APIView):
                 'contents': {}
             }
             return Response(content)
+
+
+class UserSearch(APIView):
+    renderer_classes = [JSONRenderer]
+
+    def get(self, request, key):
+        check_auth(request.META)
+
+        try:
+            # TODO key = last name, first name, address, e-mail, or <contact identifier>
+            user = User.objects.get(contact_id=key)
+            serializer = UserSerializer(user)
+            content = {
+                'result': 'ok',
+                'contents': serializer.data
+            }
+            return Response(content)
+        except ObjectDoesNotExist:
+            content = {
+                'result': 'nok',
+                'contents': {}
+            }
+            return Response(content)
