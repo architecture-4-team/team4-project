@@ -8,5 +8,9 @@ class CallState(Enum):
     ACCEPT = 3
     BYE = 4
     CANCEL = 5
-    # conference 에 대한 확장 필요
-    MAX = 4
+    # conference 에 대한 확장
+    JOIN = 6
+    CONFERENCE_CALLING = 7
+    LEAVE = 8
+
+    MAX = 9

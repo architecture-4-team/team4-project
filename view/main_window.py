@@ -31,4 +31,5 @@ class MainWindow(QMainWindow):
 
         # 버튼 클릭 이벤트 핸들러 연결
         self.main_view.button.clicked.connect(self.main_controller.main_button_clicked)
+        self.main_view.conference.clicked.connect(self.main_controller.conference_button_clicked)
         self.account_view.button.clicked.connect(self.account_controller.account_button_clicked)
