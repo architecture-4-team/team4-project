@@ -6,11 +6,11 @@ import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton
 
 
-HOST = '192.168.56.103'  # 서버의 IP 주소
+HOST = '192.168.56.102'  # 서버의 IP 주소
 PORT = 10000  # 서버의 포트 번호
-ID = 'warebowl@hotmail.com'
-TARGET_ID = 'abc@gmail.com'
-PWD = '12345678'
+ID = 'test1@lge.com'
+TARGET_ID = 'test2@lge.com'
+PWD = 'qwerty'
 UUID = ''
 callid = ''
 

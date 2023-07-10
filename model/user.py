@@ -8,12 +8,15 @@ class User:
     uuid: str
     contact_id: str
     email: str
-    password: str
+    pwd: str
     firstname: str
     lastname: str
     ip: str
     status: str
     summary: str
+    question1: str
+    question2: str
+    question3: str
     created_at: datetime
     updated_at: datetime
 
