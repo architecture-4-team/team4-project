@@ -10,6 +10,7 @@ participant "User App 4\n'444@abc.com'" as ua4
 
 == 4 users login ==
 
+-> sa : invoke a conference call
 note over sa : Call State is <b>IDLE</b>
 sa -> ua1 : <b>JOIN</b> \n \
     { \n \
@@ -45,5 +46,18 @@ sa -> ua4 : <b>JOIN</b> \n \
     }
 |||
 note over ua1, ua4 : 'JOIN' and 'CANCEL' buttons are enabled or displayed
+
+ua1 -> sa : <b>JOIN</b> \n \
+    { \n \
+    \t"command": "JOIN", \n \
+    \t"response": <b>"PARTICIPATE"</b> or "NOT PARTICIPATE", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 1's uuid", \n \
+    \t\t"roomid": "room number", \n \
+    }
+
+note over sa : Call State is CONFERENCE_CALL
+
+
 
 @enduml

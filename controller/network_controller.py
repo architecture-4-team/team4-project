@@ -8,6 +8,7 @@ from model.callroom import CallRoom
 from model.directory_singleton import directory_service
 from services.network_manager import NetworkManager
 from utils.call_state import CallState
+from model.conferencecall_broker import conferencecallbroker
 
 
 class NetworkController(QObject):
@@ -162,3 +163,11 @@ class NetworkController(QObject):
             # 해당 room 의 call 상태가 INVITE 일때만 가능하도록 예외처리 필요
             room.set_state(CallState.CANCEL)
             callbroker_service.remove(room)
+
+        elif payload['command'] == 'JOIN':
+            ret, room = conferencecallbroker.search_by_roomid(payload['content']['roomid'])
+            if ret:
+                room.set_state(CallState.CONFERENCE_CALLING)
+                # con.call 의 경우, user 의 call 상태를 확인하는 것이 가장 중요
+                # 1명만 있더라도 con.call 은 가능하다. ( ex. webex )
+            pass
