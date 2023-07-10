@@ -16,7 +16,7 @@ class UDPService(INetworkService):
         # UDP 서비스 시작 로직
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # self.socket.bind(('localhost', self.port))
-        self.socket.bind(('192.168.56.103', self.port))
+        self.socket.bind(('192.168.56.102', self.port))
         self.is_listening = True
         print(f'UDPService started listening on port {self.port}')
         self.receive()

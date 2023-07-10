@@ -19,7 +19,7 @@ class TCPService(INetworkService, ABC):
         print(f'TCP start : {self.port}')
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.server_socket.bind(('localhost', self.port))
-        self.server_socket.bind(('192.168.56.103', self.port))
+        self.server_socket.bind(('192.168.56.102', self.port))
         self.server_socket.listen(1)
         self.is_listening = True
         self.accept_connections()

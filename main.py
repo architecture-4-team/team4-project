@@ -42,7 +42,5 @@ if __name__ == "__main__":
     # signal/slot mapping information
     netCon.signal_login.connect(login.receive_message)
 
-
-
     window.show()
     app.exec()
