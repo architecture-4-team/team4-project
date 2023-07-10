@@ -41,6 +41,31 @@ else user app 2 is online and available
     \t\t"email": "xxx@yyy.zzz"} \n \
     \t\t"callid": "string number" \n \
     }
+    alt user app 1 hang up the call
+        ua1 -> sa : <b>BYE \n \
+        { \n \
+        \t"command": "BYE", \n \
+        \t"contents": { \n \
+        \t\t"uuid": "user app 1 uuid", \n \
+        \t\t"callid": <font color=red>"0"</font>\n \
+        }
+        sa -> ua1 : <b>BYE \n \
+        { \n \
+        \t"command": "BYE", \n \
+        \t"contents": { \n \
+        \t\t"uuid": "user app 1 uuid", \n \
+        \t\t"callid": "string number" \n \
+        }
+        sa -> ua2 : <b>BYE \n \
+        { \n \
+        \t"command": "BYE", \n \
+        \t"contents": { \n \
+        \t\t"uuid": "user app 2 uuid", \n \
+        \t\t"callid": "string number" \n \
+        }
+        note over ua1, ua2 : call end
+    end
+    |||
 end
 |||
 alt accept a call
@@ -59,7 +84,7 @@ alt accept a call
     \t\t"callid": "string number" \n \
     }
 else reject a call
-    autonumber 3
+    autonumber 6
     ua2 -> sa : <b>CANCEL \n \
     { \n \
     \t"command": "CANCEL", \n \
@@ -105,7 +130,7 @@ alt user app 1 attempts to end this call
     }
     note over ua1, ua2 : call end
 else user app 2 attempts to end this call
-    autonumber 5
+    autonumber 8
     ua2 -> sa : <b>BYE \n \
     { \n \
     \t"command": "BYE", \n \

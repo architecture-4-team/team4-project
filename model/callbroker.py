@@ -20,6 +20,12 @@ class CallBrokerSingleton:
                 return True, call_room
         return False, None
 
+    def search_by_user(self, user):
+        for call_room in self.call_rooms:
+            if call_room.sender_user.socket_info == user.socket_info:
+                return True, call_room
+        return False, None
+
     def print_info(self):
         for room in self.call_rooms:
             print('************************************')

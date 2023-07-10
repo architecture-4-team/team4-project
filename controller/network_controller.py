@@ -145,7 +145,12 @@ class NetworkController(QObject):
             room.set_state(CallState.ACCEPT)
 
         elif payload['command'] == 'BYE':
-            ret, room = callbroker_service.search_by_callid(payload['contents']['callid'])
+            if payload['contents']['callid'] == '0':
+                # caller 가 INVITE 이후 취소하는 경우..
+                ret_snd, snd_user = directory_service.search_by_uuid(payload['contents']['uuid'])
+                ret, room = callbroker_service.search_by_user(snd_user)
+            else:
+                ret, room = callbroker_service.search_by_callid(payload['contents']['callid'])
             # 해당 room 의 call 상태가 CALLING 일때만 가능하도록 예외처리 필요
             room.set_state(CallState.BYE)
             callbroker_service.remove(room)

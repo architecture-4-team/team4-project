@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton
 
 HOST = '192.168.56.102'  # 서버의 IP 주소
 PORT = 10000  # 서버의 포트 번호
-ID = 'test1@lge.com'
-TARGET_ID = 'test2@lge.com'
+ID = 'test2@lge.com'
+TARGET_ID = 'test1@lge.com'
 PWD = 'qwerty'
 UUID = ''
 callid = ''
@@ -90,7 +90,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle('Button Example')
+        self.setWindowTitle(f'{ID}')
         self.resize(300, 400)
 
         # 버튼 생성 및 설정
@@ -122,6 +122,9 @@ class MainWindow(QMainWindow):
         self.button6.clicked.connect(self.button6_clicked)
         self.button6.setGeometry(50, 300, 100, 30)
 
+        self.button7 = QPushButton('CANCEL2', self)
+        self.button7.clicked.connect(self.button7_clicked)
+        self.button7.setGeometry(50, 350, 100, 30)
 
         # 추가 버튼 생성
         # self.additional_buttons = []
@@ -237,23 +240,40 @@ class MainWindow(QMainWindow):
     def button6_clicked(self):
         global callid, UUID
         print('**** BYE ****')
-        # 버튼 4을 클릭했을 때 실행할 코드를 여기에 추가
         data = '''{
             "command": "BYE",
             "contents": {
                 "uuid": "%s",
                 "callid": "%s"
-              }
-            }''' % (UUID, callid)
+            }
+        }''' % (UUID, callid)
         print(type(data))
         try:
             json_data = json.loads(data)  # JSON 파싱
             print(type(json_data))
             send_json_data(sock, json_data)
         except json.JSONDecodeError:
-            print('button3 Invalid JSON format')
+            print('button6 Invalid JSON format')
         pass
 
+    def button7_clicked(self):
+        global callid, UUID
+        print('**** CANCEL 2 ****')
+        data = '''{
+            "command": "BYE",
+            "contents": {
+                "uuid": "%s",
+                "callid": "0"
+            }
+        }''' % (UUID)
+        print(type(data))
+        try:
+            json_data = json.loads(data)  # JSON 파싱
+            print(type(json_data))
+            send_json_data(sock, json_data)
+        except json.JSONDecodeError:
+            print('button7 Invalid JSON format')
+        pass
     # def additional_button_clicked(self, num):
     #     print(f'Additional Button {num} clicked')
     #     # 추가 버튼을 클릭했을 때 실행할 코드를 여기에 추가
