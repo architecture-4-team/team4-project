@@ -396,3 +396,8 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# JetBrains Pycharm
+*.idea
+*.pyc
+*__pycache__
