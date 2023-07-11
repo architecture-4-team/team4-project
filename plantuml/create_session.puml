@@ -1,0 +1,42 @@
+@startuml
+
+autonumber
+hide footbox
+
+participant "Web Server" as ws
+participant "User Application" as ua
+participant "Server Application" as sa
+
+ua -> ws : fill in email address and password \n & click "LOGIN" button
+ws --> ua : return
+
+ua -> sa : <b>SESSION</b> \n \
+    { \n \
+    \t"command": "SESSION", \n \
+    \t"contents": { \n \
+    \t\t"email": "email address", \n \
+    \t\t"uuid": "uuid", \n \
+    }
+|||
+alt succeed
+    sa -> ua : <b> SUCCEED </b> \n \
+    { \n \
+    \t"command": "SESSION", \n \
+    \t"response": "OK", \n \
+    \t"contents": { \n \
+    \t\t"uuid": "uuid", \n \
+    }
+    |||
+else failed
+    autonumber 2
+    sa -> ua : <b> FAILED </b> \n \
+    { \n \
+    \t"command": "SESSION", \n \
+    \t"response": "NOT_OK", \n \
+    \t"contents": { \n \
+    \t\t"reason": "NOT REGISTERED", \n \
+    }
+    |||
+end
+
+@enduml

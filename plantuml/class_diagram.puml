@@ -20,25 +20,55 @@ package "services"
         class TCPService
         class UDPService
     }
+    class StorageManager
+    package "StorageService" {
+        interface IStorageService
+        class MySqlService
+        class SqlLiteService
+    }
 }
 
 package "model"
 {
-
+    class CallRoom
+    class CallBroker
+    class ConferenceRoom
+    class ConferenceCallBroker
+    class DirectoryService
+    class Login
+    class Logout
+    class User
 }
 
 INetworkService <|.. TCPService
 INetworkService <|.. UDPService
 NetworkManager --> INetworkService
 
+IStorageService <|.. MySqlService
+IStorageService <|.. SqlLiteService
+StorageManager --> IStorageService
+Login ..> StorageManager
+Logout ..> StorageManager
+
 AccountController --> MainView
 MainController --> AccountView
 NetworkController --> NetworkManager
+NetworkController ..> DirectoryService
+NetworkController ..> CallBroker
+NetworkController ..> ConferenceCallBroker
 
 MainWindow *-- MainView
 MainWindow *-- AccountView
 
 main --> MainWindow
 main --> NetworkManager
+
+Login --> User
+Login ..> DirectoryService
+Logout --> User
+Logout ..> DirectoryService
+DirectoryService --> User
+ConferenceCallBroker --> ConferenceRoom
+CallBroker --> CallRoom
 
 @enduml
