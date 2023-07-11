@@ -40,11 +40,11 @@ class ConferenceCallBrokerSingleton:
     def state_changed(self, room_id, state, user=None):
         event = EventType.CONF_STATE_CHANGED
         if user:
-            if state == CallState.CALLING:
+            if state == CallState.CONFERENCE_CALLING:
                 event = EventType.CONF_USER_JOINED
             elif state == CallState.IDLE:
                 event = EventType.CONF_USER_LEAVED
-        room = [room for room in self.conference_rooms if room == room_id]
+        room = [room for room in self.conference_rooms if room.room_id == room_id]
         if room:
             for subscriber in self.subscribers:
                 payload = RoomPayload(room=room, state=state, user=user)
