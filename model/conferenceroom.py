@@ -9,7 +9,7 @@ class ConferenceRoom:
     def __init__(self, number):
         self.room_id = '0'
         self.number_of_participants = number
-        self.participants: UserExt = [user for user in directory_service.users[:number]]
+        self.participants: UserExt = [user for user in directory_service.users[:number] if user.get_state() == CallState.IDLE]
         #self.room_members: UserExt = [] # 복합시나리오에서 사용 (데모용으로는 단순시나리오만 대응)
         self.call_state = CallState.IDLE
 

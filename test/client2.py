@@ -304,6 +304,23 @@ class MainWindow(QMainWindow):
             print('button8 Invalid JSON format')
 
     def button9_clicked(self):
+        global callid, UUID, roomid
+        print('**** JOIN : NOT PARTICIPATE ****')
+        data = '''{
+                    "command": "JOIN",
+                    "response": "NOT PARTICIPATE",
+                    "contents": {
+                        "uuid": "%s",
+                        "roomid": "%s"
+                    }
+                }''' % (UUID, roomid)
+        print(type(data))
+        try:
+            json_data = json.loads(data)  # JSON 파싱
+            print(type(json_data))
+            send_json_data(sock, json_data)
+        except json.JSONDecodeError:
+            print('button8 Invalid JSON format')
         pass
 
     def button10_clicked(self):
