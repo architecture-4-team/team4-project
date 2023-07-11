@@ -23,6 +23,11 @@ class DirectorySingleton:
             subscriber.receive(EventType.USER_REMOVED, payload)
         return self.users.remove(user_object)
 
+    def remove_by_socketinfo(self, socket_info):
+        for user in self.users:
+            if user.socket_info == socket_info:
+                self.users.remove(user)
+
     def search_by_email(self, email):
         for user in self.users:
             if user.email == email:

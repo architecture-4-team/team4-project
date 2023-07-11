@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 
+from model.directory_singleton import directory_service
 from services.ievent_receiver import IEventReceiver, EventType, UDPPayload, TCPPayload
 from services.network.inetwork_service import INetworkService
 from services.network.tcp_service import TCPService
@@ -107,6 +108,7 @@ class NetworkManager:
                     subscriber[1].receive(event_name, payload)
         if event_name == EventType.CLIENT_DISCONNECTED:
             cls.client_sockets.remove(client_socket)
+            directory_service.remove_by_socketinfo(socket_info=client_socket)
 
     @classmethod
     def get_tcp_services(cls):
