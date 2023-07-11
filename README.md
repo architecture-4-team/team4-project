@@ -26,9 +26,3 @@ $ python manage.py runsslserver --certificate django.crt --key django.key 0.0.0.
 ## Admin page
 - http://127.0.0.1:8000/admin/
 - acc: fantastic4, pwd: teamfan4
-```bash
-# if have such error
-$ django.db.utils.ProgrammingError: (1146, "Table 'studio_project.auth_user' doesn't exist")
-# run on project folder code
-$ py manage.py migrate
-```

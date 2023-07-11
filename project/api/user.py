@@ -1,4 +1,5 @@
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from rest_framework.exceptions import ValidationError
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
@@ -150,8 +151,8 @@ class UserSearch(APIView):
         check_auth(request.META)
 
         try:
-            # TODO key = last name, first name, address, e-mail, or <contact identifier>
-            user = User.objects.get(contact_id=key)
+            # search by last name, first name, address, e-mail, or <contact identifier>
+            user = User.objects.(Q(lastname=key) | Q(firstname=key) | Q(email=key) | Q(contact_id=key))
             serializer = UserSerializer(user)
             content = {
                 'result': 'ok',
