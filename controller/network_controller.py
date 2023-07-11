@@ -107,16 +107,6 @@ class NetworkController(QObject):
 
                 callbroker_service.append(room)
                 callbroker_service.print_info()
-                # ret_data = f'''{{
-                #     "command": "CANCEL",
-                #     "response": "NOT AVAILABLE",
-                #     "contents": {{
-                #         "uuid": "%s"
-                #       }}
-                #     }}''' % snd_user.uuid
-                # data_json = json.loads(ret_data)
-                # ret_data_json = json.dumps(data_json)
-                # self.network_manager.send_tcp_data(ret_data_json.encode(), dst_user.socket_info)
             else:
                 # sender 에게 CANCEL 보낸다( NOT AVAILABLE )
                 ret_data = ''
@@ -138,7 +128,7 @@ class NetworkController(QObject):
                         }}''' % snd_user.uuid
                 data_json = json.loads(ret_data)
                 ret_data_json = json.dumps(data_json)
-                self.network_manager.send_tcp_data(ret_data_json.encode(), snd_user.socket_info)
+                NetworkManager.send_tcp_data(ret_data_json.encode(), snd_user.socket_info)
                 return
 
         elif payload['command'] == 'ACCEPT':
@@ -179,9 +169,28 @@ class NetworkController(QObject):
             ret, room = conferencecallbroker.search_by_roomid(payload['contents']['roomid'])
             if ret:
                 # LEAVE 를 보낸 참가자의 call 상태를 변경한다 ( IDLE )
-                room.set_user_callstate(payload['contents']['uuid'], CallState.IDLE)
-
-                # 마지막 참가자가 LEAVE 하면 conference room 을 제거한다
+                sender = room.set_user_callstate(payload['contents']['uuid'], CallState.IDLE)
 
                 # JOIN 한 모든 참가자에게 LEAVE 를 알린다
+                count = 0
+                for user in room.participants:
+                    if user != sender and user.get_state() == CallState.CONFERENCE_CALLING:
+                        ret_data = '''{
+                            "command": "LEAVE",
+                            "contents": {
+                                "uuid": "%s",
+                                "leave_email": "%s",
+                                "roomid": "%s"
+                              }
+                            }''' % (user.uuid, sender.email, payload['contents']['roomid'])
+                        data_json = json.loads(ret_data)
+                        ret_data_json = json.dumps(data_json)
+                        NetworkManager.send_tcp_data(ret_data_json.encode(), user.socket_info)
+                        count = count + 1
 
+                print(f'LEAVE sending count : {count}')
+                # 마지막 참가자가 LEAVE 하면 conference room 을 제거한다
+                if count == 0:
+                    room.set_state(CallState.LEAVE)
+                    conferencecallbroker.remove(room)
+                    conferencecallbroker.print_info()

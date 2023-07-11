@@ -139,13 +139,10 @@ class MainWindow(QMainWindow):
         self.button9.clicked.connect(self.button9_clicked)
         self.button9.setGeometry(170, 100, 100, 30)
 
-        # 추가 버튼 생성
-        # self.additional_buttons = []
-        # for i in range(3, 11):
-        #     button = QPushButton(f'Button {i}', self)
-        #     button.clicked.connect(lambda _, num=i: self.additional_button_clicked(num))
-        #     button.setGeometry(50, 150 + (i-3) * 50, 100, 30)
-        #     self.additional_buttons.append(button)
+        self.button10 = QPushButton('LEAVE', self)
+        self.button10.clicked.connect(self.button10_clicked)
+        self.button10.setGeometry(170, 150, 100, 30)
+
 
     def button1_clicked(self):
         global ID
@@ -309,6 +306,27 @@ class MainWindow(QMainWindow):
 
     def button9_clicked(self):
         pass
+
+    def button10_clicked(self):
+        global callid, UUID, roomid, ID
+        print('**** LEAVE ****')
+        data = '''{
+                    "command": "LEAVE",
+                    "contents": {
+                        "uuid": "%s",
+                        "email": "%s",
+                        "roomid": "%s"
+                    }
+                }''' % (UUID, ID, roomid)
+        print(type(data))
+        try:
+            json_data = json.loads(data)  # JSON 파싱
+            print(type(json_data))
+            send_json_data(sock, json_data)
+        except json.JSONDecodeError:
+            print('button8 Invalid JSON format')
+        pass
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -112,7 +112,8 @@ sa -> ua2 : <b>LEAVE</b> \n \
     { \n \
     \t"command": "LEAVE", \n \
     \t"contents": { \n \
-    \t\t"email": "user 1's email", \n \
+    \t\t"uuid": "user 2's uuid", \n \
+    \t\t"leave_email": "user 1's email", \n \
     \t\t"roomid": "room number", \n \
     }
 
@@ -120,7 +121,8 @@ sa -> ua3 : <b>LEAVE</b> \n \
     { \n \
     \t"command": "LEAVE", \n \
     \t"contents": { \n \
-    \t\t"email": "user 1's email", \n \
+    \t\t"uuid": "user 3's uuid", \n \
+    \t\t"leave_email": "user 1's email", \n \
     \t\t"roomid": "room number", \n \
     }
 
@@ -128,7 +130,8 @@ sa -> ua4 : <b>LEAVE</b> \n \
     { \n \
     \t"command": "LEAVE", \n \
     \t"contents": { \n \
-    \t\t"email": "user 1's email", \n \
+    \t\t"uuid": "user 4's uuid", \n \
+    \t\t"leave_email": "user 1's email", \n \
     \t\t"roomid": "room number", \n \
     }
 
@@ -145,7 +148,8 @@ sa -> ua3 : <b>LEAVE</b> \n \
     { \n \
     \t"command": "LEAVE", \n \
     \t"contents": { \n \
-    \t\t"email": "user 2's email", \n \
+    \t\t"uuid": "user 3's uuid", \n \
+    \t\t"leave_email": "user 2's email", \n \
     \t\t"roomid": "room number", \n \
     }
 
@@ -153,7 +157,8 @@ sa -> ua4 : <b>LEAVE</b> \n \
     { \n \
     \t"command": "LEAVE", \n \
     \t"contents": { \n \
-    \t\t"email": "user 2's email", \n \
+    \t\t"uuid": "user 4's uuid", \n \
+    \t\t"leave_email": "user 2's email", \n \
     \t\t"roomid": "room number", \n \
     }
 
@@ -170,7 +175,8 @@ sa -> ua4 : <b>LEAVE</b> \n \
     { \n \
     \t"command": "LEAVE", \n \
     \t"contents": { \n \
-    \t\t"email": "user 3's email", \n \
+    \t\t"uuid": "user 4's uuid", \n \
+    \t\t"leave_email": "user 3's email", \n \
     \t\t"roomid": "room number", \n \
     }
 

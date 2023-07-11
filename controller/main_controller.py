@@ -20,4 +20,3 @@ class MainController:
         conf_room.set_state(CallState.JOIN)
         # directory service 에 있는 user 들에게 모두 JOIN 메시지를 발송한다.
         conferencecallbroker.append(conf_room)
-        pass
