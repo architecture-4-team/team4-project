@@ -16,7 +16,7 @@ class Login(QObject):
         print(f'receive : {message}, {client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}')
 
     @staticmethod
-    def do_process(email, password, socket):
+    def do_process(email, uuid, socket):
         # db 에 해당 값이 있는지 확인한다
         user = storage_manager.get_user_by_email(email)
         userext = UserExt(uuid=user.uuid, contact_id=user.contact_id, email=user.email, pwd=user.pwd,

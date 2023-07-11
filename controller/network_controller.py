@@ -43,21 +43,21 @@ class NetworkController(QObject):
             return
 
         # 프로토콜 parsing 을 위해 분리 필요!!
-        if payload['command'] == 'LOGIN':  # 로그인인 경우 ( ) -> Login 객체로 이벤트 전달
-            print(f'contents :', payload['contents']['email'], payload['contents']['password'])
+        if payload['command'] == 'SESSION':  # 로그인인 경우 ( ) -> Login 객체로 이벤트 전달
+            print(f'contents :', payload['contents']['email'], payload['contents']['uuid'])
 
             # signal/slot 을 사용하는 방법
             # self.signal_login.emit(data.decode(), client_socket)
 
             # static method 를 사용하는 방법
             return_value, user_uuid = Login.do_process(email=payload['contents']['email'],
-                                                       password=payload['contents']['password'],
+                                                       uuid=payload['contents']['uuid'],
                                                        socket=client_socket)
-            print(f'<-- Login : {return_value}, {user_uuid}')
+            print(f'<-- SESSION : {return_value}, {user_uuid}')
             # response 에 대한 json 생성 필요
             if return_value:
                 ret_data = '''{
-                    "command": "LOGIN",
+                    "command": "SESSION",
                     "response": "OK",
                     "contents": {
                         "uuid": "%s"
@@ -69,7 +69,7 @@ class NetworkController(QObject):
                 NetworkManager.send_tcp_data(ret_data_json.encode(), client_socket)
             else:
                 ret_data = f'''{{
-                        "command": "LOGIN",
+                        "command": "SESSION",
                         "response": "NOT_OK",
                         "contents": {{
                             "reason": "NOT REGISTERED"

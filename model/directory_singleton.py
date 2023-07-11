@@ -12,9 +12,15 @@ class DirectorySingleton:
         pass
 
     def append(self, user_object):
+        for user in self.users: # 방어코드( 동일한 유저가 2번이상 SESSION 을 요청하는 경우 )
+            if user == user_object:
+                print('user is already in directory!!')
+                return
+
         for subscriber in self.subscribers:
             payload = UserPayload(user=user_object)
             subscriber.receive(EventType.USER_ADDED, payload)
+
         return self.users.append(user_object)
 
     def remove(self, user_object):

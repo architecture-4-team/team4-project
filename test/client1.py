@@ -11,7 +11,7 @@ PORT = 10000  # 서버의 포트 번호
 ID = 'test1@lge.com'
 TARGET_ID = 'test2@lge.com'
 PWD = 'qwerty'
-UUID = ''
+UUID = 'user_01'
 callid = ''
 roomid = ''
 
@@ -99,7 +99,7 @@ class MainWindow(QMainWindow):
         self.resize(300, 400)
 
         # 버튼 생성 및 설정
-        self.button1 = QPushButton('Login', self)
+        self.button1 = QPushButton('SESSION', self)
         self.button1.clicked.connect(self.button1_clicked)
         self.button1.setGeometry(50, 50, 100, 30)
 
@@ -147,7 +147,7 @@ class MainWindow(QMainWindow):
     def button1_clicked(self):
         global ID
         global PWD
-        print('**** LOGIN ****')
+        print('**** SESSION ****')
         # 버튼 1을 클릭했을 때 실행할 코드를 여기에 추가
         # data = '''{
         #         "command": "LOGIN",
@@ -157,12 +157,12 @@ class MainWindow(QMainWindow):
         #           }
         #         }'''
         data = '''{
-            "command": "LOGIN", 
+            "command": "SESSION", 
             "contents": {
                 "email": "%s",
-                "password": "%s"
+                "uuid": "%s"
               }
-            }''' % (ID, PWD)
+            }''' % (ID, UUID)
         try:
             json_data = json.loads(data)  # JSON 파싱
             send_json_data(sock, json_data)
