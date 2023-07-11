@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 
+from services.ievent_receiver import IEventReceiver, EventType, UDPPayload, TCPPayload
 from services.network.inetwork_service import INetworkService
 from services.network.tcp_service import TCPService
 from services.network.udp_service import UDPService
@@ -8,20 +9,9 @@ import threading
 from typing import List, Tuple
 
 
-class EventType(str, Enum):
-    DATA_RECEIVED = 'data-received'
-    CLIENT_CONNECTED = 'client-connected'
-    CLIENT_DISCONNECTED = 'client-disconnected'
-
-
-class INetworkEventReceiver(metaclass=ABCMeta):
-    @abstractmethod
-    def receive_tcp(self, socket, event):
-        pass
-
-    @abstractmethod
-    def receive_udp(self, data, sender_ip, rcv_port):
-        pass
+class ProtocolType(str, Enum):
+    TCP = 'tcp'
+    UDP = 'udp'
 
 
 class NetworkManager:
@@ -31,14 +21,14 @@ class NetworkManager:
     udp_ports: list
     client_sockets: list
 
-    tcp_subscriber: List[Tuple[int, EventType, INetworkEventReceiver]] = list()
-    udp_subscriber: List[Tuple[int, EventType, INetworkEventReceiver]] = list()
+    tcp_subscriber: List[Tuple[int, IEventReceiver]] = list()
+    udp_subscriber: List[Tuple[int, IEventReceiver]] = list()
 
     @classmethod
     def init(cls, tcp_ports: list = None, udp_ports: list = None):
         cls.tcp_ports = tcp_ports
         cls.udp_ports = udp_ports
-        cls.client_sockets = []
+        cls.client_sockets = list()
 
     @classmethod
     def start_network_services(cls):
@@ -101,25 +91,30 @@ class NetworkManager:
     @classmethod
     def receive_udp_data(cls, data, address, port):
         for subscriber in cls.udp_subscriber:
-            if subscriber[0] == port and subscriber[1] == EventType.DATA_RECEIVED:
-                subscriber[2].receive_udp(data, address, port)
+            if subscriber[0] == port:
+                payload = UDPPayload(sender_ip=address, receive_port=port, packet=data)
+                subscriber[2].receive(EventType.UDP_DATA_RECEIVED, payload)
 
     @classmethod
-    def handle_client_connected(cls, client_socket):
-        cls.client_sockets.append(client_socket)
-        print(f"append handle_client_connected {client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}")
-        for subscriber in cls.tcp_subscriber:
-            if subscriber[1] == EventType.CLIENT_CONNECTED or subscriber[1] == EventType.CLIENT_DISCONNECTED:
-                subscriber[2].receive_tcp(client_socket, subscriber[1])
+    def handle_client_connected(cls, event_name, client_socket):
+        if event_name == EventType.CLIENT_CONNECTED:
+            cls.client_sockets.append(client_socket)
+            print(f"append handle_client_connected {client_socket.getpeername()[0]}:{client_socket.getpeername()[1]}")
+            for subscriber in cls.tcp_subscriber:
+                host, port = client_socket.getpeername()
+                if subscriber[0] == port:
+                    payload = TCPPayload(socket=client_socket)
+                    subscriber[1].receive(event_name, payload)
+        if event_name == EventType.CLIENT_DISCONNECTED:
+            cls.client_sockets.remove(client_socket)
 
     @classmethod
     def get_tcp_services(cls):
         return cls.tcp_services
 
     @classmethod
-    def subscribe_tcp(cls, port: int, event: EventType, subscriber: INetworkEventReceiver):
-        cls.tcp_subscriber.append((port, event, subscriber))
-
-    @classmethod
-    def subscribe_udp(cls, port: int, event: EventType, subscriber: INetworkEventReceiver):
-        cls.udp_subscriber.append((port, event, subscriber))
+    def subscribe(cls, subscriber: IEventReceiver, ptype: ProtocolType, port: int):
+        if ptype == ProtocolType.TCP:
+            cls.tcp_subscriber.append((port, subscriber))
+        if ptype == ProtocolType.UDP:
+            cls.udp_subscriber.append((port, subscriber))

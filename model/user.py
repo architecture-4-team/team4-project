@@ -35,3 +35,6 @@ class UserExt(User):
 
     def get_state(self):
         return self.call_state
+
+    def __str__(self):
+        return f'{self.email}, {self.ip}, {self.contact_id}, {self.online}, {self.enable}'

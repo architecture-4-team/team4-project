@@ -1,14 +1,26 @@
+from typing import List
+
 from model.user import UserExt
+from services.ievent_receiver import IEventReceiver, EventType, UserPayload
 
 
 class DirectorySingleton:
+    users: List[UserExt] = list()
+    subscribers: List[IEventReceiver] = list()
+
     def __init__(self):
-        self.users: UserExt = []
+        pass
 
     def append(self, user_object):
+        for subscriber in self.subscribers:
+            payload = UserPayload(user=user_object)
+            subscriber.receive(EventType.USER_ADDED, payload)
         return self.users.append(user_object)
 
     def remove(self, user_object):
+        for subscriber in self.subscribers:
+            payload = UserPayload(user=user_object)
+            subscriber.receive(EventType.USER_REMOVED, payload)
         return self.users.remove(user_object)
 
     def search_by_email(self, email):
@@ -45,6 +57,12 @@ class DirectorySingleton:
             print(f'user uuid : {user.uuid}')
             print(f'user name : {user.firstname, user.lastname}')
             print('************************************')
+
+    def subscribe(self, subscriber: IEventReceiver):
+        self.subscribers.append(subscriber)
+
+    def unsubscribe(self, subscriber: IEventReceiver):
+        self.subscribers.remove(subscriber)
 
 
 directory_service = DirectorySingleton()

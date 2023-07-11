@@ -20,6 +20,8 @@ class GStreamPipeline:
     asrc = None
     asink = None
 
+    loop = None
+
     clients = list()
 
     def __init__(self, owner):
@@ -36,19 +38,24 @@ class GStreamPipeline:
         self.vpipeline.set_state(Gst.State.PLAYING)
         self.apipeline.set_state(Gst.State.PLAYING)
 
+        self.loop = GLib.MainLoop()
+        self.loop.run()
+
+    def is_loop_running(self):
+        return self.loop.is_running()
+
     def stop(self):
+        self.loop.quit()
+
         self.vpipeline.set_state(Gst.State.NULL)
-        self.vpipeline = None
         self.apipeline.set_state(Gst.State.NULL)
-        self.apipeline = None
 
     def relay_video(self, data, dst_ip, dst_port, sender=None):
         print(f'[{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}][V]', dst_ip, dst_port)
         if f"{dst_ip}:{dst_port}" not in self.clients:
             self.vsink.emit("add", dst_ip, dst_port)
             self.clients.append(f"{dst_ip}:{dst_port}")
-        # header = f'{len(sender)}{sender}'
-        data = sender.encode() + data
+        # data = sender.encode() + data
         buffer = Gst.Buffer.new_wrapped(data)
         self.vsrc.emit("push-buffer", buffer)
 

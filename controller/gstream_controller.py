@@ -1,67 +1,160 @@
-from typing import Dict
+import threading
+from typing import Dict, List, Tuple
 
 from controller.gstream_pipeline import GStreamPipeline
-from services.network_manager import INetworkEventReceiver, NetworkManager, EventType
+from model.callbroker import callbroker_service
+from model.directory_singleton import directory_service
+from model.user import UserExt
+from services.ievent_receiver import IEventReceiver, EventType, UserPayload, EventPayload, TCPPayload, UDPPayload, \
+    RoomPayload
+from services.network_manager import NetworkManager, ProtocolType
+from utils.call_state import CallState
+
+DEFAULT_RCV_VIDEO_PORT = 10001
+DEFAULT_RCV_AUDIO_PORT = 10002
+
+DEFAULT_SEND_VIDEO_PORT = 5001
+DEFAULT_SEND_AUDIO_PORT = 5002
+
+VIDEO_PORT_01 = 5001
+AUDIO_PORT_01 = 5002
+VIDEO_PORT_02 = 5003
+AUDIO_PORT_02 = 5004
+VIDEO_PORT_03 = 5005
+AUDIO_PORT_03 = 5006
+
+CLIENT_01_IP = '192.168.2.4'
+CLIENT_02_IP = '192.168.2.5'
+CLIENT_03_IP = '192.168.2.6'
+CLIENT_04_IP = '192.168.2.7'
 
 
 pipeline_map = {
-    "192.168.2.4": [
-        ("192.168.2.4", 5001, 5002)
+    CLIENT_01_IP: [
+        (CLIENT_02_IP, VIDEO_PORT_01, AUDIO_PORT_01),
+        (CLIENT_03_IP, VIDEO_PORT_01, AUDIO_PORT_01),
+        (CLIENT_04_IP, VIDEO_PORT_01, AUDIO_PORT_01)
     ],
-    "192.168.2.8": [
-        ("192.168.2.8", 5001, 5002)
-    ]
+    CLIENT_02_IP: [
+        (CLIENT_01_IP, VIDEO_PORT_01, AUDIO_PORT_01),
+        (CLIENT_03_IP, VIDEO_PORT_02, AUDIO_PORT_02),
+        (CLIENT_04_IP, VIDEO_PORT_02, AUDIO_PORT_02)
+    ],
+    CLIENT_03_IP: [
+        (CLIENT_01_IP, VIDEO_PORT_02, AUDIO_PORT_02),
+        (CLIENT_02_IP, VIDEO_PORT_02, AUDIO_PORT_02),
+        (CLIENT_04_IP, VIDEO_PORT_03, AUDIO_PORT_03)
+    ],
+    CLIENT_04_IP: [
+        (CLIENT_01_IP, VIDEO_PORT_03, AUDIO_PORT_03),
+        (CLIENT_02_IP, VIDEO_PORT_03, AUDIO_PORT_03),
+        (CLIENT_03_IP, VIDEO_PORT_03, AUDIO_PORT_03)
+    ],
 }
 
 
-class GStreamController(INetworkEventReceiver):
+class GStreamController(IEventReceiver):
+    LOG = '[GStreamController]'
 
     connected_clients = list()
     pipelines: Dict[str, GStreamPipeline] = dict()
+    pipeline_map: Dict[str, List[Tuple[UserExt, int, int]]] = dict()
+    route_map = None
 
     def __init__(self):
-        pass
+        self.route_map = {
+            EventType.USER_ADDED: self.process_user,
+            EventType.USER_REMOVED: self.process_user,
+            EventType.CLIENT_CONNECTED: self.process_connection,
+            EventType.CLIENT_DISCONNECTED: self.process_connection,
+            EventType.UDP_DATA_RECEIVED: self.process_udp,
+            EventType.STATE_CHANGED: self.process_state_changed,
+        }
+        self.pipeline_map = pipeline_map
 
     def start(self):
-        NetworkManager.subscribe_tcp(10000, EventType.CLIENT_CONNECTED, self)
-        NetworkManager.subscribe_tcp(10000, EventType.CLIENT_DISCONNECTED, self)
+        NetworkManager.subscribe(self, ProtocolType.UDP, DEFAULT_RCV_VIDEO_PORT)
+        NetworkManager.subscribe(self, ProtocolType.UDP, DEFAULT_RCV_AUDIO_PORT)
 
-        NetworkManager.subscribe_udp(10001, EventType.DATA_RECEIVED, self)
-        NetworkManager.subscribe_udp(10002, EventType.DATA_RECEIVED, self)
+        directory_service.subscribe(self)
+        callbroker_service.subscribe(self)
 
-        pipeline = GStreamPipeline("192.168.2.8")
-        self.pipelines["192.168.2.8"] = pipeline
-        pipeline.start()
+    def receive(self, event_name: EventType, event: EventPayload):
+        print(self.LOG, 'Receive event: ', event_name)
+        self.route_map[event_name](event_name, event)
 
-        pipeline = GStreamPipeline("192.168.2.4")
-        self.pipelines["192.168.2.4"] = pipeline
-        pipeline.start()
+    def process_connection(self, event_name: EventType, payload: TCPPayload):
+        host, port = payload.socket.getpeername()
+        if event_name == EventType.CLIENT_CONNECTED:
+            pass
+        if event_name == EventType.CLIENT_DISCONNECTED:
+            self.pipelines.pop(host)
+        print(self.LOG, 'Client connection: ', host, port, event_name)
 
-    def receive_tcp(self, socket, event=None):
-        host, port = socket.getpeername()
-        self.manage_connection(host, event)
+    def process_udp(self, event_name: EventType, payload: UDPPayload):
+        if event_name == EventType.UDP_DATA_RECEIVED:
+            self.send_data(payload.packet, payload.sender_ip, payload.receive_port)
 
-    def receive_udp(self, data, sender_ip, rcv_port):
-        self.send_data(data, sender_ip, rcv_port)
+    def process_user(self, event, payload: UserPayload):
 
-    def manage_connection(self, sender, event):
-        if event == EventType.CLIENT_CONNECTED and sender not in self.connected_clients:
-            self.connected_clients.append(sender)
-            self.pipelines[sender] = GStreamPipeline(sender)
-        if event == EventType.CLIENT_DISCONNECTED and sender in self.connected_clients:
-            self.connected_clients.remove(sender)
-            if pipeline := self.pipelines.get(sender):
-                pipeline.stop()
-                self.pipelines.pop(sender)
+        if event == "user-added":
+            print(self.LOG, 'user added: ', payload.user.email)
+            receive_thread = threading.Thread(target=self._create_user_pipelie,
+                                              args=(payload.user,), daemon=True)
+            receive_thread.start()
+        if event == 'user-removed':
+            print(self.LOG, 'user removed: ', payload.user.email)
+            self._stop_pipeline(payload.user.ip)
+
+    def process_state_changed(self, event, payload: RoomPayload):
+        if payload.state == CallState.CALLING:
+            print(self.LOG, 'Process calling state')
+            if not self.pipeline_map.get(payload.room.sender_user.ip):
+                self.pipeline_map[payload.room.sender_user.ip] = list()
+            self.pipeline_map[payload.room.sender_user.ip].\
+                append((payload.room.receiver_user, DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT))
+            self._start_pipeline(payload.room.sender_user.ip)
+            self._start_pipeline(payload.room.receiver_user.ip)
+
+        if payload.state == CallState.BYE:
+            print(self.LOG, 'Process bye state')
+            self.pipeline_map.pop(payload.room.sender_user.ip)
+
+            self._stop_pipeline(payload.room.sender_user.ip)
+            self._stop_pipeline(payload.room.receiver_user.ip)
 
     def send_data(self, data, sender, rcv_port):
         target_map = self.get_pipeline_map(sender)
         if pipeline := self.pipelines.get(sender):
             for target in target_map:
-                if rcv_port == 10001:
+                if rcv_port == DEFAULT_RCV_VIDEO_PORT:
                     pipeline.relay_video(data, target[0], target[1], sender)
-                elif rcv_port == 10002:
+                elif rcv_port == DEFAULT_RCV_AUDIO_PORT:
                     pipeline.relay_audio(data, target[0], target[2], sender)
 
+    def _start_pipeline(self, target):
+        print(self.LOG, 'Start pipeline: ', target)
+
+    def _stop_pipeline(self, target):
+        self.pipelines[target].stop()
+        print(self.LOG, 'Stop pipeline: ', target)
+
+    def _create_user_pipelie(self, user: UserExt):
+        pipeline = GStreamPipeline(user.ip)
+        self.pipelines[user.ip] = pipeline
+        pipeline.start()
+
+    def _remove_user_pipeline(self, user: UserExt):
+        self._stop_pipeline(user.ip)
+        self.pipelines.pop(user.ip)
+
+    def _conf_client_added(self):
+        # add from pipeline multiudpsink
+        pass
+
+    def _conf_client_removed(self):
+        # remove from pipeline multiudpsink
+        pass
+
     def get_pipeline_map(self, host):
-        return pipeline_map[host]
+        return self.pipeline_map[host]

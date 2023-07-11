@@ -1,4 +1,6 @@
 import json
+
+from model.callbroker import callbroker_service
 from utils.call_state import CallState
 from model.user import User, UserExt
 from services.network_manager import NetworkManager
@@ -33,7 +35,7 @@ class CallRoom:
             data_json = json.loads(data)
             ret_data_json = json.dumps(data_json)
             NetworkManager.send_tcp_data(ret_data_json.encode(),
-                                               self.receiver_user.socket_info)
+                                         self.receiver_user.socket_info)
 
             data = '''{
                 "command": "BYE",
@@ -45,7 +47,7 @@ class CallRoom:
             data_json = json.loads(data)
             ret_data_json = json.dumps(data_json)
             NetworkManager.send_tcp_data(ret_data_json.encode(),
-                                               self.sender_user.socket_info)
+                                         self.sender_user.socket_info)
 
             self.sender_user.set_state(CallState.IDLE)
             self.receiver_user.set_state(CallState.IDLE)
@@ -103,3 +105,5 @@ class CallRoom:
 
         elif state == CallState.CALLING:
             pass
+
+        callbroker_service.call_state_changed(self.call_id, state)

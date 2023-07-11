@@ -145,8 +145,9 @@ class NetworkController(QObject):
             else:
                 ret, room = callbroker_service.search_by_callid(payload['contents']['callid'])
             # 해당 room 의 call 상태가 CALLING 일때만 가능하도록 예외처리 필요
-            room.set_state(CallState.BYE)
-            callbroker_service.remove(room)
+            if room:
+                room.set_state(CallState.BYE)
+                callbroker_service.remove(room)
 
         elif payload['command'] == 'CANCEL':
             ret, room = callbroker_service.search_by_callid(payload['contents']['callid'])
