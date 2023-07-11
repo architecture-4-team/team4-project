@@ -14,7 +14,7 @@ class MainController:
 
     def conference_button_clicked(self):
         # conference room 을 생성
-        conf_room = ConferenceRoom(4);
+        conf_room = ConferenceRoom(4)
         print(f'로그인한 총 {conf_room.get_participants_number()}명(MAX:{conf_room.number_of_participants}명)에게 초청메시지 전송')
         conf_room.set_room_id(str(conferencecallbroker.make_room_id())) # room 번호 생성
         conf_room.set_state(CallState.JOIN)

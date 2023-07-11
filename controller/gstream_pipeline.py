@@ -55,12 +55,10 @@ class GStreamPipeline:
         if f"{dst_ip}:{dst_port}" not in self.clients:
             self.vsink.emit("add", dst_ip, dst_port)
             self.clients.append(f"{dst_ip}:{dst_port}")
-        # data = sender.encode() + data
         buffer = Gst.Buffer.new_wrapped(data)
         self.vsrc.emit("push-buffer", buffer)
 
     def relay_audio(self, data, dst_ip, dst_port, sender=None):
-        print(f'[{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}][A]', dst_ip, dst_port)
         if f"{dst_ip}:{dst_port}" not in self.clients:
             self.asink.emit("add", dst_ip, dst_port)
             self.clients.append(f"{dst_ip}:{dst_port}")

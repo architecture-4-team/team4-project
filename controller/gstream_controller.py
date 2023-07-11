@@ -3,6 +3,7 @@ from typing import Dict, List, Tuple
 
 from controller.gstream_pipeline import GStreamPipeline
 from model.callbroker import callbroker_service
+from model.conferencecall_broker import conferencecallbroker
 from model.directory_singleton import directory_service
 from model.user import UserExt
 from services.ievent_receiver import IEventReceiver, EventType, UserPayload, EventPayload, TCPPayload, UDPPayload, \
@@ -59,6 +60,7 @@ class GStreamController(IEventReceiver):
     connected_clients = list()
     pipelines: Dict[str, GStreamPipeline] = dict()
     pipeline_map: Dict[str, List[Tuple[UserExt, int, int]]] = dict()
+    one2one_participants = list()
     route_map = None
 
     def __init__(self):
@@ -69,8 +71,10 @@ class GStreamController(IEventReceiver):
             EventType.CLIENT_DISCONNECTED: self.process_connection,
             EventType.UDP_DATA_RECEIVED: self.process_udp,
             EventType.STATE_CHANGED: self.process_state_changed,
+            EventType.CONF_STATE_CHANGED: self.process_conf_state_changed,
+            EventType.CONF_USER_JOINED: self.process_conf_state_changed,
+            EventType.CONF_USER_LEAVED: self.process_conf_state_changed
         }
-        self.pipeline_map = pipeline_map
 
     def start(self):
         NetworkManager.subscribe(self, ProtocolType.UDP, DEFAULT_RCV_VIDEO_PORT)
@@ -78,6 +82,7 @@ class GStreamController(IEventReceiver):
 
         directory_service.subscribe(self)
         callbroker_service.subscribe(self)
+        conferencecallbroker.subscribe(self)
 
     def receive(self, event_name: EventType, event: EventPayload):
         print(self.LOG, 'Receive event: ', event_name)
@@ -96,7 +101,6 @@ class GStreamController(IEventReceiver):
             self.send_data(payload.packet, payload.sender_ip, payload.receive_port)
 
     def process_user(self, event, payload: UserPayload):
-
         if event == "user-added":
             print(self.LOG, 'user added: ', payload.user.email)
             receive_thread = threading.Thread(target=self._create_user_pipelie,
@@ -116,6 +120,9 @@ class GStreamController(IEventReceiver):
             self._start_pipeline(payload.room.sender_user.ip)
             self._start_pipeline(payload.room.receiver_user.ip)
 
+            self.one2one_participants.append(payload.room.sender_user.ip)
+            self.one2one_participants.append(payload.room.receiver_user.ip)
+
         if payload.state == CallState.BYE:
             print(self.LOG, 'Process bye state')
             self.pipeline_map.pop(payload.room.sender_user.ip)
@@ -123,8 +130,24 @@ class GStreamController(IEventReceiver):
             self._stop_pipeline(payload.room.sender_user.ip)
             self._stop_pipeline(payload.room.receiver_user.ip)
 
+            self.one2one_participants.remove(payload.room.sender_user.ip)
+            self.one2one_participants.remove(payload.room.receiver_user.ip)
+
+    def process_conf_state_changed(self, event: EventType, payload: RoomPayload):
+        # only check user status
+        if event == EventType.CONF_USER_JOINED:
+            self._start_pipeline(payload.user.ip)
+        if event == EventType.CONF_USER_LEAVED:
+            self._stop_pipeline(payload.user.ip)
+
+        if event == EventType.CONF_STATE_CHANGED:
+            pass
+
     def send_data(self, data, sender, rcv_port):
-        target_map = self.get_pipeline_map(sender)
+        if self.one2one_participants:
+            target_map = self.get_pipeline_map(sender)
+        else:
+            target_map = self.get_conference_map(sender)
         if pipeline := self.pipelines.get(sender):
             for target in target_map:
                 if rcv_port == DEFAULT_RCV_VIDEO_PORT:
@@ -148,13 +171,8 @@ class GStreamController(IEventReceiver):
         self._stop_pipeline(user.ip)
         self.pipelines.pop(user.ip)
 
-    def _conf_client_added(self):
-        # add from pipeline multiudpsink
-        pass
-
-    def _conf_client_removed(self):
-        # remove from pipeline multiudpsink
-        pass
-
     def get_pipeline_map(self, host):
         return self.pipeline_map[host]
+
+    def get_conference_map(self, host):
+        return pipeline_map[host]

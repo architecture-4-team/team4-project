@@ -41,7 +41,6 @@ class UDPService(INetworkService):
         # 데이터 수신 로직
         while self.is_listening and self.socket:
             data, self.address = self.socket.recvfrom(self.DEFAULT_BUF_SIZE)
-            print(self.address)
             if self.receive_callback:
                 self.receive_callback(data, self.address[0], self.port)
 

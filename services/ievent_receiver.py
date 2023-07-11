@@ -23,7 +23,12 @@ class EventType(str, Enum):
     # room state
     STATE_CHANGED = 'state-changed'
     USER_JOINED = 'user-joined'
-    USER_LEAVED = 'user=leaved'
+    USER_LEAVED = 'user-leaved'
+
+    # conference
+    CONF_STATE_CHANGED = 'conference-state-changed'
+    CONF_USER_JOINED = 'conference-user-joined'
+    CONF_USER_LEAVED = 'conference-user-leaved'
 
 
 @dataclass
@@ -52,6 +57,7 @@ class UserPayload(EventPayload):
 class RoomPayload(EventPayload):
     room: Any   # CallRoom (circular reference)
     state: CallState
+    user: Any = None
 
 
 class IEventReceiver(metaclass=ABCMeta):

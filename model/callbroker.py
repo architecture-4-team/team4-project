@@ -43,7 +43,7 @@ class CallBrokerSingleton:
         room = [room for room in self.call_rooms if room.call_id == room_id]
         if room:
             for subscriber in self.subscriber:
-                payload = RoomPayload(room=room[0], state=state)
+                payload = RoomPayload(room=room[0], state=state, user=None)
                 subscriber.receive(EventType.STATE_CHANGED, payload)
         else:
             print('no room')

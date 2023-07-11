@@ -1,11 +1,16 @@
-from model.conferenceroom import ConferenceRoom
+from typing import List
+
+from services.ievent_receiver import IEventReceiver, RoomPayload, EventType
+from utils.call_state import CallState
 
 
 class ConferenceCallBrokerSingleton:
     room_id: int = 1
+    conference_rooms = list()
+    subscribers: List[IEventReceiver] = list()
 
     def __init__(self):
-        self.conference_rooms: ConferenceRoom = []
+        pass
 
     def append(self, conf_room_object):
         self.conference_rooms.append(conf_room_object)
@@ -31,6 +36,25 @@ class ConferenceCallBrokerSingleton:
             print(f'participated : ')
             print(f'\t\t{room.print_users_call_states()}')
             print('*****************************************')
+
+    def state_changed(self, room_id, state, user=None):
+        event = EventType.CONF_STATE_CHANGED
+        if user:
+            if state == CallState.CALLING:
+                event = EventType.CONF_USER_JOINED
+            elif state == CallState.IDLE:
+                event = EventType.CONF_USER_LEAVED
+        room = [room for room in self.conference_rooms if room == room_id]
+        if room:
+            for subscriber in self.subscribers:
+                payload = RoomPayload(room=room, state=state, user=user)
+                subscriber.receive(event, payload)
+
+    def subscribe(self, subscriber: IEventReceiver):
+        self.subscribers.append(subscriber)
+
+    def unsubscribe(self, subscriber: IEventReceiver):
+        self.subscribers.append(subscriber)
 
 
 conferencecallbroker = ConferenceCallBrokerSingleton()
