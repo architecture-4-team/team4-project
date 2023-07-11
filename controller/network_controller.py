@@ -164,6 +164,9 @@ class NetworkController(QObject):
                     room.set_user_callstate(payload['contents']['uuid'], CallState.CONFERENCE_CALLING)
                     conferencecallbroker.print_info()
             # response 가 NOT PARTICIPATE 이면.. ( 참가하지 않는다면 )
+            elif payload['response'] == 'NOT PARTICIPATE':
+                # 참가자들에게 LEAVE 메시지를 보내고 room.participants 에서 user 를 제거한다
+                pass
 
         elif payload['command'] == "LEAVE":
             ret, room = conferencecallbroker.search_by_roomid(payload['contents']['roomid'])
