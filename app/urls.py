@@ -32,7 +32,7 @@ urlpatterns = [
     # api/user
     path('api/user', UserList.as_view()),
     path('api/user/<uuid>', UserDetail.as_view()),
-    path('api/user/search/<key>', UserSearch.as_view()),
+    path('api/search/<key>', UserSearch.as_view()),
 
     # api/contact
     path('api/contact', UserList.as_view()),

@@ -160,8 +160,8 @@ class UserSearch(APIView):
 
         try:
             # search by last name, first name, address, e-mail, or <contact identifier>
-            user = User.objects.filter(Q(lastname=key) | Q(firstname=key) | Q(email=key) | Q(contact_id=key))
-            serializer = UserSerializer(user)
+            users = User.objects.filter(Q(lastname=key) | Q(firstname=key) | Q(email=key) | Q(contact_id=key))
+            serializer = UserSerializer(users, many=True)
             content = {
                 'result': 'ok',
                 'contents': serializer.data

@@ -6,7 +6,7 @@ from project.model.contact import Contact
 
 # to set fields to display on admin page
 class UserAdmin(admin.ModelAdmin):
-	list_display = ("contact_id", "email", "firstname", "lastname", "enable")
+	list_display = ("uuid", "contact_id", "email", "firstname", "lastname", "enable")
 
 class ContactAdmin(admin.ModelAdmin):
 	list_display = ("nickname", "owner_uid", "favorite_uid")
