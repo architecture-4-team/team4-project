@@ -10,7 +10,7 @@ class ConferenceRoom:
         self.room_id = '0'
         self.number_of_participants = number
         self.participants: UserExt = [user for user in directory_service.users[:number]]
-        #self.room_members: UserExt = [] # 복합시나리오에서 사용 (단순시나리오만 대응)
+        #self.room_members: UserExt = [] # 복합시나리오에서 사용 (데모용으로는 단순시나리오만 대응)
         self.call_state = CallState.IDLE
 
     def set_room_id(self, roomid):
@@ -26,6 +26,7 @@ class ConferenceRoom:
         for user in self.participants:
             if user.uuid == uuid:
                 user.set_state(call_state)
+                return user
 
     def get_participants_number(self):
         return len(self.participants)
@@ -45,6 +46,7 @@ class ConferenceRoom:
         if state == CallState.LEAVE:
             self.call_state = CallState.IDLE
             pass
+
         elif state == CallState.JOIN:
             for user in self.participants:
                 data = '''{

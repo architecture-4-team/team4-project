@@ -8,11 +8,12 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton
 
 HOST = '192.168.56.102'  # 서버의 IP 주소
 PORT = 10000  # 서버의 포트 번호
-ID = 'test3@lge.com'
-TARGET_ID = 'test1@lge.com'
+ID = 'test4@lge.com'
+TARGET_ID = 'test2@lge.com'
 PWD = 'qwerty'
 UUID = ''
 callid = ''
+roomid = ''
 
 
 # JSON 데이터를 서버로 전송하는 함수
