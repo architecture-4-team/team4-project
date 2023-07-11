@@ -75,17 +75,25 @@ class UserDetail(APIView):
     def _update_user(self, request, uuid):
         try:
             user = User.objects.get(uuid=uuid)
-            user.contact_id = request.data["contact_id"]
             user.email = request.data["email"]
-            user.pwd = request.data["pwd"]
-            user.firstname = request.data["firstname"]
-            user.lastname = request.data["lastname"]
-            user.ip = request.data["ip"]
-            user.status = 1
-            user.summary = f'{user.email} {user.firstname} {user.lastname}'
-            user.question1 = request.data["question1"]
-            user.question2 = request.data["question2"]
-            user.question3 = request.data["question3"]
+            if not request.META.get("HTTP_X_FEATURE_TYPE"):
+                if user.pwd != request.data["pwd"]:
+                    content = {
+                        'result': 'nok',
+                        'contents': {
+                            "reason": "wrong password"
+                        }
+                    }
+                    return Response(content)
+                user.firstname = request.data["firstname"]
+                user.lastname = request.data["lastname"]
+                user.ip = request.data["ip"]
+                user.summary = f'{user.email} {user.firstname} {user.lastname}'
+                user.question1 = request.data["question1"]
+                user.question2 = request.data["question2"]
+                user.question3 = request.data["question3"]
+            else:
+                user.pwd = request.data["pwd"]
             user.save()
             content = {
                 'result': 'ok',

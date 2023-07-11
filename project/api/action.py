@@ -1,6 +1,7 @@
 import shortuuid
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from rest_framework.exceptions import ParseError, AuthenticationFailed
+from rest_framework.metadata import SimpleMetadata
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -40,7 +41,7 @@ class Register(APIView):
             question2 = request.data["question2"]
             question3 = request.data["question3"]
 
-            user = User(contact_id=contact_id, email=email, pwd=pwd,
+            user = User(contact_id=email, email=email, pwd=pwd,
                         firstname=firstname, lastname=lastname, ip=ip, summary=summary,
                         question1=question1, question2=question2, question3=question3)
             user.save()
@@ -57,10 +58,11 @@ class Login(APIView):
     renderer_classes = [JSONRenderer]
 
     def post(self, request):
+        print('[Login] post: ', request)
         if not request.data:
             raise ParseError("No payload")
 
-        email = request.data.get("email")
+        email = request.data.get("username")
         password = request.data.get("password")
         if not email or not password:
             raise ParseError("Invalid keys")
@@ -117,12 +119,10 @@ class Reset(APIView):
 
         try:
             user = User.objects.get(email=email, question1=answer1, question2=answer2, question3=answer3)
-            user.pwd = shortuuid.uuid()
-            user.save()
             content = {
                 'result': 'ok',
                 'contents': {
-                    "response": user.pwd
+                    "response": user.uuid
                 }
             }
             return Response(content)

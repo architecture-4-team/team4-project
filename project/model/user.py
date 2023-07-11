@@ -6,7 +6,7 @@ class User(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     contact_id = models.CharField(max_length=64)
     email = models.CharField(max_length=64)
-    pwd = models.CharField(max_length=64)
+    pwd = models.CharField(max_length=256)
     firstname = models.CharField(max_length=32)
     lastname = models.CharField(max_length=32)
     ip = models.CharField(max_length=32)

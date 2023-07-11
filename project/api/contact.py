@@ -14,10 +14,12 @@ class ContactDetail(APIView):
     renderer_classes = [JSONRenderer]
 
     def post(self, request, uuid):
+
         check_auth(request.META)
 
         favorite_uid = request.data.get("favorite_uuid")
         nickname = request.data.get("nickname")
+        print('[ContactDetail]', favorite_uid, nickname)
         if not favorite_uid or not nickname:
             raise ParseError("Invalid payload")
 
