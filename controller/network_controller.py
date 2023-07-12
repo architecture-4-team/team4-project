@@ -195,13 +195,13 @@ class NetworkController(QObject):
                     outer = []
                     for key in controller.gstream_controller.pipeline_map.keys():
                         if key != except_ip:
-                            for value in controller.gstream_controller.pipeline_map[key]:
-                                if value[0] == except_ip:
+                            for subkey, value in controller.gstream_controller.pipeline_map[key].items():
+                                if subkey == except_ip:
                                     inner = []
                                     condition = { "ip": key,  }
                                     result = service.read_records(table, condition=condition)
                                     email = str(repr(result[0]['email']))
-                                    inner = [email, value[1], value[2]]
+                                    inner = [email, value[0], value[1]]
                                     outer.append(inner)
                     print(outer)
                     service.disconnect()
