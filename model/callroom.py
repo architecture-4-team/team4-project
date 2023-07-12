@@ -34,8 +34,9 @@ class CallRoom:
                 }''' % (self.receiver_user.uuid, self.call_id)
             data_json = json.loads(data)
             ret_data_json = json.dumps(data_json)
-            NetworkManager.send_tcp_data(ret_data_json.encode(),
-                                         self.receiver_user.socket_info)
+            if self.receiver_user.socket_info.fileno() != -1:
+                NetworkManager.send_tcp_data(ret_data_json.encode(),
+                                             self.receiver_user.socket_info)
 
             data = '''{
                 "command": "BYE",
@@ -46,8 +47,9 @@ class CallRoom:
                 }''' % (self.sender_user.uuid, self.call_id)
             data_json = json.loads(data)
             ret_data_json = json.dumps(data_json)
-            NetworkManager.send_tcp_data(ret_data_json.encode(),
-                                         self.sender_user.socket_info)
+            if self.sender_user.socket_info.fileno() != -1:
+                NetworkManager.send_tcp_data(ret_data_json.encode(),
+                                             self.sender_user.socket_info)
 
             self.sender_user.set_state(CallState.IDLE)
             self.receiver_user.set_state(CallState.IDLE)

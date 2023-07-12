@@ -2,10 +2,12 @@ from abc import ABCMeta, abstractmethod
 from enum import Enum
 
 from model.directory_singleton import directory_service
+from model.callbroker import callbroker_service
 from services.ievent_receiver import IEventReceiver, EventType, UDPPayload, TCPPayload
 from services.network.inetwork_service import INetworkService
 from services.network.tcp_service import TCPService
 from services.network.udp_service import UDPService
+from utils.call_state import CallState
 import threading
 from typing import List, Tuple
 
@@ -108,6 +110,11 @@ class NetworkManager:
                     subscriber[1].receive(event_name, payload)
         if event_name == EventType.CLIENT_DISCONNECTED:
             cls.client_sockets.remove(client_socket)
+            _, user = directory_service.search_by_socket(client_socket)
+            ret, room = callbroker_service.search_by_user(user)
+            if ret:
+                room.set_state(CallState.BYE)
+
             directory_service.remove_by_socketinfo(socket_info=client_socket)
 
     @classmethod
