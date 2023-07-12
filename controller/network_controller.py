@@ -71,17 +71,17 @@ class NetworkController(QObject):
                 NetworkManager.send_tcp_data(ret_data_json.encode(), client_socket)
 
                 # database 에 유저의 IP 업데이트
-                # service = MySQLService()
-                # service.connect()
-                # table = 'user_table'
-                # condition = {
-                #     "uuid": payload['contents']['uuid'],
-                # }
-                # data = {
-                #     "ip": client_socket.getpeername()[0],
-                # }
-                # service.update_records(table, condition=condition, data=data)
-                # service.disconnect()
+                service = MySQLService()
+                service.connect()
+                table = 'user_table'
+                condition = {
+                    "uuid": payload['contents']['uuid'],
+                }
+                data = {
+                    "ip": client_socket.getpeername()[0],
+                }
+                service.update_records(table, condition=condition, data=data)
+                service.disconnect()
 
             else:
                 ret_data = f'''{{
