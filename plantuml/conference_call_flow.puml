@@ -58,10 +58,21 @@ ua1 -> sa : <b>JOIN</b> \n \
     \t\t"uuid": "user 1's uuid", \n \
     \t\t"roomid": "room number", \n \
     }
-
+sa -> ua1 : <b>JOIN</b> \n \
+    { \n \
+    \t"command": "JOIN", \n \
+    \t"response": <b>"PARTICIPATED"</b>, \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 1's uuid", \n \
+    \t\t"participants": [["user 2's email", video port, audio port], \
+    ["user 3's email", video port, audio port], \
+    ["user 4's email", video port, audio port]], \n \
+    \t\t"roomid": "room number", \n \
+    }
 note over sa : Call State is CONFERENCE_CALL
 
 ua1 -> sa : send Video/Voice data
+|||
 
 ua2 -> sa : <b>JOIN</b> \n \
     { \n \
@@ -71,8 +82,19 @@ ua2 -> sa : <b>JOIN</b> \n \
     \t\t"uuid": "user 2's uuid", \n \
     \t\t"roomid": "room number", \n \
     }
-
+sa -> ua2 : <b>JOIN</b> \n \
+    { \n \
+    \t"command": "JOIN", \n \
+    \t"response": <b>"PARTICIPATED"</b>, \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 2's uuid", \n \
+    \t\t"participants": [["user 1's email", video port, audio port], \
+    ["user 3's email", video port, audio port], \
+    ["user 4's email", video port, audio port]], \n \
+    \t\t"roomid": "room number", \n \
+    }
 ua2 -> sa : send Video/Voice data
+|||
 
 ua3 -> sa : <b>JOIN</b> \n \
     { \n \
@@ -82,8 +104,20 @@ ua3 -> sa : <b>JOIN</b> \n \
     \t\t"uuid": "user 3's uuid", \n \
     \t\t"roomid": "room number", \n \
     }
+sa -> ua3 : <b>JOIN</b> \n \
+    { \n \
+    \t"command": "JOIN", \n \
+    \t"response": <b>"PARTICIPATED"</b>, \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 3's uuid", \n \
+    \t\t"participants": [["user 1's email", video port, audio port], \
+    ["user 2's email", video port, audio port], \
+    ["user 4's email", video port, audio port]], \n \
+    \t\t"roomid": "room number", \n \
+    }
 
 ua3 -> sa : send Video/Voice data
+|||
 
 ua4 -> sa : <b>JOIN</b> \n \
     { \n \
@@ -93,7 +127,17 @@ ua4 -> sa : <b>JOIN</b> \n \
     \t\t"uuid": "user 4's uuid", \n \
     \t\t"roomid": "room number", \n \
     }
-
+sa -> ua4 : <b>JOIN</b> \n \
+    { \n \
+    \t"command": "JOIN", \n \
+    \t"response": <b>"PARTICIPATED"</b>, \n \
+    \t"contents": { \n \
+    \t\t"uuid": "user 4's uuid", \n \
+    \t\t"participants": [["user 1's email", video port, audio port], \
+    ["user 2's email", video port, audio port], \
+    ["user 3's email", video port, audio port]], \
+    \t\t"roomid": "room number", \n \
+    }
 ua4 -> sa : send Video/Voice data
 
 == LEAVE ==
