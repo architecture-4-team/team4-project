@@ -31,26 +31,26 @@ CLIENT_04_IP = '192.168.2.7'
 
 
 pipeline_map = {
-    CLIENT_01_IP: [
-        (CLIENT_02_IP, VIDEO_PORT_01, AUDIO_PORT_01),
-        (CLIENT_03_IP, VIDEO_PORT_01, AUDIO_PORT_01),
-        (CLIENT_04_IP, VIDEO_PORT_01, AUDIO_PORT_01)
-    ],
-    CLIENT_02_IP: [
-        (CLIENT_01_IP, VIDEO_PORT_01, AUDIO_PORT_01),
-        (CLIENT_03_IP, VIDEO_PORT_02, AUDIO_PORT_02),
-        (CLIENT_04_IP, VIDEO_PORT_02, AUDIO_PORT_02)
-    ],
-    CLIENT_03_IP: [
-        (CLIENT_01_IP, VIDEO_PORT_02, AUDIO_PORT_02),
-        (CLIENT_02_IP, VIDEO_PORT_02, AUDIO_PORT_02),
-        (CLIENT_04_IP, VIDEO_PORT_03, AUDIO_PORT_03)
-    ],
-    CLIENT_04_IP: [
-        (CLIENT_01_IP, VIDEO_PORT_03, AUDIO_PORT_03),
-        (CLIENT_02_IP, VIDEO_PORT_03, AUDIO_PORT_03),
-        (CLIENT_03_IP, VIDEO_PORT_03, AUDIO_PORT_03)
-    ],
+    CLIENT_01_IP: {
+        CLIENT_02_IP: (VIDEO_PORT_01, AUDIO_PORT_01),
+        CLIENT_03_IP: (VIDEO_PORT_01, AUDIO_PORT_01),
+        CLIENT_04_IP: (VIDEO_PORT_01, AUDIO_PORT_01)
+    },
+    CLIENT_02_IP: {
+        CLIENT_01_IP: (VIDEO_PORT_01, AUDIO_PORT_01),
+        CLIENT_03_IP: (VIDEO_PORT_02, AUDIO_PORT_02),
+        CLIENT_04_IP: (VIDEO_PORT_02, AUDIO_PORT_02)
+    },
+    CLIENT_03_IP: {
+        CLIENT_01_IP: (VIDEO_PORT_02, AUDIO_PORT_02),
+        CLIENT_02_IP: (VIDEO_PORT_02, AUDIO_PORT_02),
+        CLIENT_04_IP: (VIDEO_PORT_03, AUDIO_PORT_03)
+    },
+    CLIENT_04_IP: {
+        CLIENT_01_IP: (VIDEO_PORT_03, AUDIO_PORT_03),
+        CLIENT_02_IP: (VIDEO_PORT_03, AUDIO_PORT_03),
+        CLIENT_03_IP: (VIDEO_PORT_03, AUDIO_PORT_03)
+    },
 }
 
 
@@ -113,53 +113,80 @@ class GStreamController(IEventReceiver):
     def process_state_changed(self, event, payload: RoomPayload):
         if payload.state == CallState.CALLING:
             print(self.LOG, 'Process calling state')
-            if not self.pipeline_map.get(payload.room.sender_user.ip):
-                self.pipeline_map[payload.room.sender_user.ip] = list()
-            self.pipeline_map[payload.room.sender_user.ip].\
-                append((payload.room.receiver_user.ip, DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT))
-            if not self.pipeline_map.get(payload.room.receiver_user.ip):
-                self.pipeline_map[payload.room.receiver_user.ip] = list()
-            self.pipeline_map[payload.room.receiver_user.ip].\
-                append((payload.room.sender_user.ip, DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT))
+            sender_pipeline = self.pipelines.get(payload.room.sender_user.ip)
+            receiver_pipeline = self.pipelines.get(payload.room.receiver_user.ip)
+            if sender_pipeline and receiver_pipeline:
+                # for sender
+                self._add_signal(self.pipelines[payload.room.sender_user.ip], payload.room.receiver_user.ip,
+                                 DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT)
+                # for receiver
+                self._add_signal(self.pipelines[payload.room.receiver_user.ip], payload.room.sender_user.ip,
+                                 DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT)
 
-            self._start_pipeline(payload.room.sender_user.ip)
-            self._start_pipeline(payload.room.receiver_user.ip)
-
-            self.one2one_participants.append(payload.room.sender_user.ip)
-            self.one2one_participants.append(payload.room.receiver_user.ip)
+                self._start_pipeline(payload.room.sender_user.ip)
+                self._start_pipeline(payload.room.receiver_user.ip)
 
         if payload.state == CallState.BYE:
             print(self.LOG, 'Process bye state')
-            self.pipeline_map.pop(payload.room.sender_user.ip)
-            self.pipeline_map.pop(payload.room.receiver_user.ip)
+            sender_pipeline = self.pipelines.get(payload.room.sender_user.ip)
+            receiver_pipeline = self.pipelines.get(payload.room.receiver_user.ip)
+            if sender_pipeline and receiver_pipeline:
+                # for sender
+                self._remove_signal(self.pipelines[payload.room.sender_user.ip], payload.room.receiver_user.ip,
+                                    DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT)
+                # for receiver
+                self._remove_signal(self.pipelines[payload.room.receiver_user.ip], payload.room.sender_user.ip,
+                                    DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT)
 
             self._stop_pipeline(payload.room.sender_user.ip)
             self._stop_pipeline(payload.room.receiver_user.ip)
 
-            self.one2one_participants.remove(payload.room.sender_user.ip)
-            self.one2one_participants.remove(payload.room.receiver_user.ip)
-
     def process_conf_state_changed(self, event: EventType, payload: RoomPayload):
         # only check user status
         if event == EventType.CONF_USER_JOINED:
-            self._start_pipeline(payload.user.ip)
+            if payload.room:
+                self._start_pipeline(payload.user.ip)
+
+                participants = [user for user in payload.room.get_participated_members() if user.ip != payload.user.ip]
+                for user in participants:
+                    # participated members -> new user
+                    conf_map = self.get_conference_map(user.ip)
+                    self._add_signal(self.pipelines.get(user.ip), payload.user.ip,
+                                     conf_map[payload.user.ip][0], conf_map[payload.user.ip][1])
+                    print(self.LOG, 'Add Participant -> User', user.ip, payload.user.ip)
+                    # New user -> participated members
+                    conf_map = self.get_conference_map(payload.user.ip)
+                    self._add_signal(self.pipelines.get(payload.user.ip), user.ip,
+                                     conf_map[user.ip][0], conf_map[user.ip][1])
+                    print(self.LOG, 'Add User -> Participant', payload.user.ip, user.ip)
+
         if event == EventType.CONF_USER_LEAVED:
-            self._stop_pipeline(payload.user.ip)
+            if payload.room:
+                self._stop_pipeline(payload.user.ip)
+
+                # participated members add new user
+                participants = [user for user in payload.room.get_participated_members() if user.ip != payload.user.ip]
+                for user in participants:
+                    # participated members add new user
+                    conf_map = self.get_conference_map(user.ip)
+                    self._remove_signal(self.pipelines.get(user.ip), payload.user.ip,
+                                        conf_map[payload.user.ip][0], conf_map[payload.user.ip][1])
+                    print(self.LOG, 'Remove Participant -> User', user.ip, payload.user.ip)
+                    # New user add participated members
+                    conf_map = self.get_conference_map(payload.user.ip)
+                    self._remove_signal(self.pipelines.get(payload.user.ip), user.ip,
+                                        conf_map[user.ip][0], conf_map[user.ip][1])
+                    print(self.LOG, 'Remove User -> Participant', payload.user.ip, user.ip)
 
         if event == EventType.CONF_STATE_CHANGED:
             pass
 
     def send_data(self, data, sender, rcv_port):
-        if self.one2one_participants:
-            target_map = self.get_pipeline_map(sender)
-        else:
-            target_map = self.get_conference_map(sender)
         if pipeline := self.pipelines.get(sender):
-            for target in target_map:
-                if rcv_port == DEFAULT_RCV_VIDEO_PORT:
-                    pipeline.relay_video(data, target[0], target[1], sender)
-                elif rcv_port == DEFAULT_RCV_AUDIO_PORT:
-                    pipeline.relay_audio(data, target[0], target[2], sender)
+            if rcv_port == DEFAULT_RCV_VIDEO_PORT:
+                pipeline.relay_video(data)
+            elif rcv_port == DEFAULT_RCV_AUDIO_PORT:
+                pipeline.relay_audio(data)
 
     def _start_pipeline(self, target):
         print(self.LOG, 'Start pipeline: ', target)
@@ -176,6 +203,20 @@ class GStreamController(IEventReceiver):
     def _remove_user_pipeline(self, user: UserExt):
         self._stop_pipeline(user.ip)
         self.pipelines.pop(user.ip)
+
+    def _add_signal(self, pipeline: GStreamPipeline, dst_ip, dst_vport, dst_aport):
+        if pipeline:
+            pipeline.vsink.emit('add', dst_ip, dst_vport)
+            pipeline.asink.emit('add', dst_ip, dst_aport)
+        else:
+            print(self.LOG, 'add no pipeline')
+
+    def _remove_signal(self, pipeline: GStreamPipeline, dst_ip, dst_vport, dst_aport):
+        if pipeline:
+            pipeline.vsink.emit('remove', dst_ip, dst_vport)
+            pipeline.asink.emit('remove', dst_ip, dst_aport)
+        else:
+            print(self.LOG, 'remove no pipeline')
 
     def get_pipeline_map(self, host):
         return self.pipeline_map.get(host)

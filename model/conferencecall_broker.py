@@ -45,9 +45,10 @@ class ConferenceCallBrokerSingleton:
             elif state == CallState.IDLE:
                 event = EventType.CONF_USER_LEAVED
         room = [room for room in self.conference_rooms if room.room_id == room_id]
+        print('[ConferenceCall] Room count:', len(room), room_id, event)
         if room:
             for subscriber in self.subscribers:
-                payload = RoomPayload(room=room, state=state, user=user)
+                payload = RoomPayload(room=room[0], state=state, user=user)
                 subscriber.receive(event, payload)
 
     def subscribe(self, subscriber: IEventReceiver):
