@@ -10,6 +10,7 @@ from services.network_manager import NetworkManager
 from services.storage_manager import MySQLService
 from utils.call_state import CallState
 from model.conferencecall_broker import conferencecallbroker
+import controller.gstream_controller
 
 
 class NetworkController(QObject):
@@ -70,17 +71,17 @@ class NetworkController(QObject):
                 NetworkManager.send_tcp_data(ret_data_json.encode(), client_socket)
 
                 # database 에 유저의 IP 업데이트
-                service = MySQLService()
-                service.connect()
-                table = 'user_table'
-                condition = {
-                    "uuid": payload['contents']['uuid'],
-                }
-                data = {
-                    "ip": client_socket.getpeername()[0],
-                }
-                service.update_records(table, condition=condition, data=data)
-                service.disconnect()
+                # service = MySQLService()
+                # service.connect()
+                # table = 'user_table'
+                # condition = {
+                #     "uuid": payload['contents']['uuid'],
+                # }
+                # data = {
+                #     "ip": client_socket.getpeername()[0],
+                # }
+                # service.update_records(table, condition=condition, data=data)
+                # service.disconnect()
 
             else:
                 ret_data = f'''{{
@@ -178,8 +179,45 @@ class NetworkController(QObject):
                     room.set_state(CallState.CONFERENCE_CALLING)
                     # con.call 의 경우, user 의 call 상태를 확인하는 것이 가장 중요
                     # 1명만 있더라도 con.call 은 가능하다. ( ex. webex )
-                    room.set_user_callstate(payload['contents']['uuid'], CallState.CONFERENCE_CALLING)
+                    user = room.set_user_callstate(payload['contents']['uuid'], CallState.CONFERENCE_CALLING)
+
+                    # 로그인을 나중에 한 경우.....
+
                     conferencecallbroker.print_info()
+
+                    # response 를 보낸다
+                    service = MySQLService()
+                    service.connect()
+                    table = 'user_table'
+                    condition = { "uuid": payload['contents']['uuid'], }
+                    result = service.read_records(table, condition=condition)
+                    except_ip = result[0]['ip']
+                    outer = []
+                    for key in controller.gstream_controller.pipeline_map.keys():
+                        if key != except_ip:
+                            for value in controller.gstream_controller.pipeline_map[key]:
+                                if value[0] == except_ip:
+                                    inner = []
+                                    condition = { "ip": key,  }
+                                    result = service.read_records(table, condition=condition)
+                                    email = str(repr(result[0]['email']))
+                                    inner = [email, value[1], value[2]]
+                                    outer.append(inner)
+                    print(outer)
+                    service.disconnect()
+                    ret_data = '''{
+                        "command": "JOIN",
+                        "response": "PATICIPATED",
+                        "contents": {
+                            "uuid": "%s",
+                            "participants": %s,
+                            "roomid": "%s"
+                          }
+                        }''' % (payload['contents']['uuid'], outer, payload['contents']['roomid'])
+                    data_json = json.loads(ret_data)
+                    ret_data_json = json.dumps(data_json)
+                    NetworkManager.send_tcp_data(ret_data_json.encode(), user.socket_info)
+
             # response 가 NOT PARTICIPATE 이면.. ( 참가하지 않는다면 )
             elif payload['response'] == 'NOT PARTICIPATE':
                 # 참가자들에게 LEAVE 메시지를 보내고 room.participants 에서 user 를 제거한다
