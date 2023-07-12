@@ -57,6 +57,7 @@ class DirectorySingleton:
         for user in self.users:
             if str(user.uuid) == uuid:
                 return True, user
+        print('Not found: ', self.users)
         return False, None
 
     def print_info(self):

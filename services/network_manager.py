@@ -94,7 +94,7 @@ class NetworkManager:
         for subscriber in cls.udp_subscriber:
             if subscriber[0] == port:
                 payload = UDPPayload(sender_ip=address, receive_port=port, packet=data)
-                subscriber[2].receive(EventType.UDP_DATA_RECEIVED, payload)
+                subscriber[1].receive(EventType.UDP_DATA_RECEIVED, payload)
 
     @classmethod
     def handle_client_connected(cls, event_name, client_socket):

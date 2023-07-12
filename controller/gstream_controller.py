@@ -85,7 +85,7 @@ class GStreamController(IEventReceiver):
         conferencecallbroker.subscribe(self)
 
     def receive(self, event_name: EventType, event: EventPayload):
-        print(self.LOG, 'Receive event: ', event_name)
+        # print(self.LOG, 'Receive event: ', event_name)
         self.route_map[event_name](event_name, event)
 
     def process_connection(self, event_name: EventType, payload: TCPPayload):
@@ -117,6 +117,11 @@ class GStreamController(IEventReceiver):
                 self.pipeline_map[payload.room.sender_user.ip] = list()
             self.pipeline_map[payload.room.sender_user.ip].\
                 append((payload.room.receiver_user, DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT))
+            if not self.pipeline_map.get(payload.room.receiver_user.ip):
+                self.pipeline_map[payload.room.receiver_user.ip] = list()
+            self.pipeline_map[payload.room.receiver_user.ip].\
+                append((payload.room.sender_user, DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT))
+
             self._start_pipeline(payload.room.sender_user.ip)
             self._start_pipeline(payload.room.receiver_user.ip)
 
@@ -126,6 +131,7 @@ class GStreamController(IEventReceiver):
         if payload.state == CallState.BYE:
             print(self.LOG, 'Process bye state')
             self.pipeline_map.pop(payload.room.sender_user.ip)
+            self.pipeline_map.pop(payload.room.receiver_user.ip)
 
             self._stop_pipeline(payload.room.sender_user.ip)
             self._stop_pipeline(payload.room.receiver_user.ip)
