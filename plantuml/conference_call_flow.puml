@@ -12,42 +12,43 @@ participant "User App 4\n'444@abc.com'" as ua4
 
 -> sa : invoke a conference call
 note over sa : Call State is <b>IDLE</b>
-sa -> ua1 : <b>JOIN</b> \n \
-    { \n \
-    \t"command": "JOIN", \n \
-    \t"contents": { \n \
-    \t\t"uuid": "user 1's uuid", \n \
-    \t\t"roomid": "room number", \n \
-    \t\t"participants": ["222@abc.com", \n\t\t\t\t\t\t"333@abc.com", \n\t\t\t\t\t\t"444@abc.com"]} \n \
-    }
-sa -> ua2 : <b>JOIN</b> \n \
-    { \n \
-    \t"command": "JOIN", \n \
-    \t"contents": { \n \
-    \t\t"uuid": "user 2's uuid", \n \
-    \t\t"roomid": "room number", \n \
-    \t\t"participants": ["111@abc.com", \n\t\t\t\t\t\t"333@abc.com", \n\t\t\t\t\t\t"444@abc.com"]} \n \
-    }
-sa -> ua3 : <b>JOIN</b> \n \
-    { \n \
-    \t"command": "JOIN", \n \
-    \t"contents": { \n \
-    \t\t"uuid": "user 3's uuid", \n \
-    \t\t"roomid": "room number", \n \
-    \t\t"participants": ["111@abc.com", \n\t\t\t\t\t\t"222@abc.com", \n\t\t\t\t\t\t"444@abc.com"]} \n \
-    }
-sa -> ua4 : <b>JOIN</b> \n \
-    { \n \
-    \t"command": "JOIN", \n \
-    \t"contents": { \n \
-    \t\t"uuid": "user 4's uuid", \n \
-    \t\t"roomid": "room number", \n \
-    \t\t"participants": ["111@abc.com", \n\t\t\t\t\t\t"222@abc.com", \n\t\t\t\t\t\t"333@abc.com"]} \n \
-    }
+sa -> sa : write infomation of a conference call to database
+'sa -> ua1 : <b>JOIN</b> \n \
+'    { \n \
+'    \t"command": "JOIN", \n \
+'    \t"contents": { \n \
+'    \t\t"uuid": "user 1's uuid", \n \
+'    \t\t"roomid": "room number", \n \
+'    \t\t"participants": ["222@abc.com", \n\t\t\t\t\t\t"333@abc.com", \n\t\t\t\t\t\t"444@abc.com"]} \n \
+'    }
+'sa -> ua2 : <b>JOIN</b> \n \
+'    { \n \
+'    \t"command": "JOIN", \n \
+'    \t"contents": { \n \
+'    \t\t"uuid": "user 2's uuid", \n \
+'    \t\t"roomid": "room number", \n \
+'    \t\t"participants": ["111@abc.com", \n\t\t\t\t\t\t"333@abc.com", \n\t\t\t\t\t\t"444@abc.com"]} \n \
+'    }
+'sa -> ua3 : <b>JOIN</b> \n \
+'    { \n \
+'    \t"command": "JOIN", \n \
+'    \t"contents": { \n \
+'    \t\t"uuid": "user 3's uuid", \n \
+'    \t\t"roomid": "room number", \n \
+'    \t\t"participants": ["111@abc.com", \n\t\t\t\t\t\t"222@abc.com", \n\t\t\t\t\t\t"444@abc.com"]} \n \
+'    }
+'sa -> ua4 : <b>JOIN</b> \n \
+'    { \n \
+'    \t"command": "JOIN", \n \
+'    \t"contents": { \n \
+'    \t\t"uuid": "user 4's uuid", \n \
+'    \t\t"roomid": "room number", \n \
+'    \t\t"participants": ["111@abc.com", \n\t\t\t\t\t\t"222@abc.com", \n\t\t\t\t\t\t"333@abc.com"]} \n \
+'    }
 |||
-note over ua1, ua4 : 'JOIN' and 'CANCEL' buttons are enabled or displayed
 
 == JOIN ==
+note over ua1, ua4 : user can see a conference call in menu
 
 ua1 -> sa : <b>JOIN</b> \n \
     { \n \
