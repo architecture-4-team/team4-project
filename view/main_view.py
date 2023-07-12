@@ -7,12 +7,14 @@ class MainView(QWidget):
 
         # 버튼 생성
         self.button = QPushButton("Switch to Account View")
-        self.conference = QPushButton("Broadcast the conference call")
+        self.conference = QPushButton("Make the conference call")
+        self.del_conference = QPushButton("Delete the conference call")
 
         # 레이아웃 설정
         layout = QVBoxLayout()
         layout.addWidget(self.button)
         layout.addWidget(self.conference)
+        layout.addWidget(self.del_conference)
         self.label = QLabel("Main View")
         layout.addWidget(self.label)
         self.setLayout(layout)

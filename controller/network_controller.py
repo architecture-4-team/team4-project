@@ -214,3 +214,16 @@ class NetworkController(QObject):
                     room.set_state(CallState.LEAVE)
                     conferencecallbroker.remove(room)
                     conferencecallbroker.print_info()
+
+                    # db 에서 con.call 정보도 지운다.
+                    service = MySQLService()
+                    service.connect()
+
+                    table = 'room_table'
+                    # service.delete_all(table)
+                    condition = {
+                        "room_id": room.room_id,
+                    }
+                    service.delete_records(table, condition)
+
+                    service.disconnect()
