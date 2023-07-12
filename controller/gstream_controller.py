@@ -24,9 +24,9 @@ AUDIO_PORT_02 = 5004
 VIDEO_PORT_03 = 5005
 AUDIO_PORT_03 = 5006
 
-CLIENT_01_IP = '192.168.2.4'
-CLIENT_02_IP = '192.168.2.5'
-CLIENT_03_IP = '192.168.2.6'
+CLIENT_01_IP = '192.168.2.3'
+CLIENT_02_IP = '192.168.2.2'
+CLIENT_03_IP = '192.168.2.5'
 CLIENT_04_IP = '192.168.2.7'
 
 
@@ -59,7 +59,7 @@ class GStreamController(IEventReceiver):
 
     connected_clients = list()
     pipelines: Dict[str, GStreamPipeline] = dict()
-    pipeline_map: Dict[str, List[Tuple[UserExt, int, int]]] = dict()
+    pipeline_map: Dict[str, List[Tuple[str, int, int]]] = dict()
     one2one_participants = list()
     route_map = None
 
@@ -116,11 +116,11 @@ class GStreamController(IEventReceiver):
             if not self.pipeline_map.get(payload.room.sender_user.ip):
                 self.pipeline_map[payload.room.sender_user.ip] = list()
             self.pipeline_map[payload.room.sender_user.ip].\
-                append((payload.room.receiver_user, DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT))
+                append((payload.room.receiver_user.ip, DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT))
             if not self.pipeline_map.get(payload.room.receiver_user.ip):
                 self.pipeline_map[payload.room.receiver_user.ip] = list()
             self.pipeline_map[payload.room.receiver_user.ip].\
-                append((payload.room.sender_user, DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT))
+                append((payload.room.sender_user.ip, DEFAULT_SEND_VIDEO_PORT, DEFAULT_SEND_AUDIO_PORT))
 
             self._start_pipeline(payload.room.sender_user.ip)
             self._start_pipeline(payload.room.receiver_user.ip)
@@ -157,9 +157,9 @@ class GStreamController(IEventReceiver):
         if pipeline := self.pipelines.get(sender):
             for target in target_map:
                 if rcv_port == DEFAULT_RCV_VIDEO_PORT:
-                    pipeline.relay_video(data, target[0].ip, target[1], sender)
+                    pipeline.relay_video(data, target[0], target[1], sender)
                 elif rcv_port == DEFAULT_RCV_AUDIO_PORT:
-                    pipeline.relay_audio(data, target[0].ip, target[2], sender)
+                    pipeline.relay_audio(data, target[0], target[2], sender)
 
     def _start_pipeline(self, target):
         print(self.LOG, 'Start pipeline: ', target)
