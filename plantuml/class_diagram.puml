@@ -59,6 +59,7 @@ NetworkController --> NetworkManager
 NetworkController ..> DirectoryService
 NetworkController ..> CallBroker
 NetworkController ..> ConferenceCallBroker
+NetworkController ..> StorageManager
 
 MainWindow *-- MainView
 MainWindow *-- AccountView
@@ -73,7 +74,10 @@ Logout ..> DirectoryService
 DirectoryService --> User
 ConferenceCallBroker --> ConferenceRoom
 CallBroker --> CallRoom
+CallRoom --> User
+ConferenceRoom --> User
 
 gstreamer_controller ..> NetworkManager
+gstreamer_controller *- gstreamer_pipeline
 
 @enduml
