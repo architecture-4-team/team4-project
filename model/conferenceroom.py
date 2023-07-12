@@ -31,6 +31,7 @@ class ConferenceRoom:
         for user in self.participants:
             if user.uuid == uuid:
                 user.set_state(call_state)
+                print('User state changed')
                 conferencecallbroker.state_changed(room_id=self.room_id, state=call_state, user=user)
                 return user
 
@@ -38,11 +39,7 @@ class ConferenceRoom:
         return len(self.participants)
 
     def get_participated_members(self):
-        count = 0
-        for user in self.participants:
-            if user.get_state() == CallState.CONFERENCE_CALLING:
-                count = count + 1
-        return count
+        return self.participants
 
     def print_users_call_states(self):
         for user in self.participants:
@@ -73,4 +70,5 @@ class ConferenceRoom:
         elif state == CallState.CONFERENCE_CALLING:
             pass
 
+        print('Room state changed')
         conferencecallbroker.state_changed(self.room_id, state)
