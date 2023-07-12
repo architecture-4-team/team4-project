@@ -157,9 +157,9 @@ class GStreamController(IEventReceiver):
         if pipeline := self.pipelines.get(sender):
             for target in target_map:
                 if rcv_port == DEFAULT_RCV_VIDEO_PORT:
-                    pipeline.relay_video(data, target[0], target[1], sender)
+                    pipeline.relay_video(data, target[0].ip, target[1], sender)
                 elif rcv_port == DEFAULT_RCV_AUDIO_PORT:
-                    pipeline.relay_audio(data, target[0], target[2], sender)
+                    pipeline.relay_audio(data, target[0].ip, target[2], sender)
 
     def _start_pipeline(self, target):
         print(self.LOG, 'Start pipeline: ', target)
