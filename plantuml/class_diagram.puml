@@ -5,6 +5,8 @@ package "controller" {
     class AccountController
     class MainController
     class NetworkController
+    class gstreamer_controller
+    class gstreamer_pipeline
 }
 package "view" {
     class MainWindow
@@ -19,6 +21,7 @@ package "services"
         interface INetworkService
         class TCPService
         class UDPService
+        class UDPGStreamerService
     }
     class StorageManager
     package "StorageService" {
@@ -70,5 +73,7 @@ Logout ..> DirectoryService
 DirectoryService --> User
 ConferenceCallBroker --> ConferenceRoom
 CallBroker --> CallRoom
+
+gstreamer_controller ..> NetworkManager
 
 @enduml
