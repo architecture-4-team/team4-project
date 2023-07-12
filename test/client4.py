@@ -13,7 +13,7 @@ TARGET_ID = 'test2@lge.com'
 PWD = 'qwerty'
 UUID = 'user_04'
 callid = ''
-roomid = ''
+roomid = '2'
 
 
 # JSON 데이터를 서버로 전송하는 함수
