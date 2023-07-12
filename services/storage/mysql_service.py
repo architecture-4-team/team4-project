@@ -51,6 +51,7 @@ class MySQLService(IStorageService):
         values.extend(cond_values)
         with self.conn.cursor() as cursor:
             query = f"UPDATE {table} SET {statement} WHERE {where_statement}"
+            print(query)
             affected_rows = cursor.execute(query, tuple(values))
             self.conn.commit()
 

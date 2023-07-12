@@ -178,7 +178,7 @@ class GStreamController(IEventReceiver):
         self.pipelines.pop(user.ip)
 
     def get_pipeline_map(self, host):
-        return self.pipeline_map[host]
+        return self.pipeline_map.get(host)
 
     def get_conference_map(self, host):
         return pipeline_map[host]
